@@ -305,29 +305,6 @@ Interactive docs: **GET /docs**
 
 ---
 
-## Deployment
-
-### Frontend (Vercel)
-
-1. Import https://github.com/orwin1002/airbnb-clone on [vercel.com](https://vercel.com)
-2. Set **Root Directory** to `frontend`
-3. Environment variable: `NEXT_PUBLIC_API_URL=https://your-backend.onrender.com`
-4. Deploy
-
-### Backend (Render)
-
-1. Create a **Web Service** on [render.com](https://render.com) connected to the repo
-2. **Root Directory:** `backend`
-3. **Build command:** `pip install -r requirements.txt`
-4. **Start command:** `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-5. Environment variable: `CORS_ORIGINS=https://your-app.vercel.app`
-
-Alternatively, use the included `render.yaml` Blueprint for one-click backend setup.
-
-> **Note:** SQLite on free-tier cloud hosts may reset on redeploy. The seed script runs on every startup to repopulate demo data.
-
----
-
 ## Assumptions
 
 1. **No real authentication** — Sessions are simulated via `X-User-Id`; suitable for demo/assignment use only.
