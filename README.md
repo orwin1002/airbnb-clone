@@ -2,7 +2,11 @@
 
 A full-stack Airbnb-style vacation rental platform. Guests can search and book stays, save wishlists, message hosts, and leave reviews. Hosts can create and manage listings and view incoming bookings. The UI is photo-forward and responsive, with dark mode support.
 
-**Live repo:** https://github.com/orwin1002/airbnb-clone
+**Live demo:** https://airbnb-clone-rho-ivory.vercel.app  
+**API docs:** https://airbnb-clone.onrender.com/docs  
+**Repo:** https://github.com/orwin1002/airbnb-clone
+
+> The live backend runs on Render’s free tier and may take 30–60 seconds to respond on the first visit after idle time.
 
 ---
 
@@ -16,6 +20,7 @@ A full-stack Airbnb-style vacation rental platform. Guests can search and book s
 | | `next-themes` | Dark / light mode |
 | | `react-day-picker` | Date range selection |
 | | `lucide-react` | Icons |
+| | `react-leaflet` / Leaflet | Interactive listing map |
 | **Backend** | FastAPI | REST API |
 | | SQLAlchemy 2 | ORM |
 | | Pydantic v2 | Request/response validation |
@@ -294,7 +299,7 @@ Interactive docs: **GET /docs**
 ## Features
 
 - **Search** — Filter by keyword (title, city, area), dates, guests (adults/children/infants), price, property type, vibe, amenities
-- **Listing detail** — Photo gallery, amenities, host info, availability calendar, price breakdown, reviews, map
+- **Listing detail** — Photo gallery, amenities, host info, availability calendar, price breakdown, reviews, interactive map (Leaflet)
 - **Booking** — Overlap prevention, mocked checkout, trip management, cancellation with refund preview
 - **Host dashboard** — CRUD listings, view bookings on your properties
 - **Wishlists** — Save/remove favorites
@@ -310,7 +315,7 @@ Interactive docs: **GET /docs**
 1. **No real authentication** — Sessions are simulated via `X-User-Id`; suitable for demo/assignment use only.
 2. **No real payments** — Checkout is mocked; no Stripe or payment gateway integration.
 3. **Photos are URL-based** — Listing images are external Unsplash URLs; there is no file upload.
-4. **Map is static** — Listing location uses a static map image, not an interactive map.
+4. **Map uses OpenStreetMap tiles** — Listing location is shown with Leaflet; no custom map API key is required.
 5. **Guest vs host roles** — Users have an `is_host` flag; demo accounts are either guest-only or host-only.
 6. **Pricing formula** — `total = nights × price_per_night + ₹500 cleaning fee + 12% service fee` (hardcoded).
 7. **SQLite for persistence** — Single-file database; not intended for high-concurrency production without migration to Postgres.
