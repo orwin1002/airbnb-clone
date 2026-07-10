@@ -13,14 +13,15 @@ migrate_schema()
 
 app = FastAPI(title="Airbnb Clone API", version="1.0.0")
 
-origins = os.getenv(
+origins = [o.strip() for o in os.getenv(
     "CORS_ORIGINS",
     "http://localhost:3000,http://127.0.0.1:3000",
-).split(",")
+).split(",") if o.strip()]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[o.strip() for o in origins],
+    allow_origins=origins,
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
