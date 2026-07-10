@@ -43,6 +43,26 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return res.json();
 }
 
+async function requestWithRetry<T>(
+  path: string,
+  options: RequestInit = {},
+  retries = 4,
+  delayMs = 8000
+): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      return await request<T>(path, options);
+    } catch (err) {
+      lastError = err;
+      if (attempt < retries - 1) {
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error("Request failed");
+}
+
 export const api = {
   login: (email: string, password: string) =>
     request<User>("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) }),
@@ -62,7 +82,7 @@ export const api = {
     Object.entries(apiFilters).forEach(([k, v]) => {
       if (v !== undefined && v !== "" && v !== null) params.set(k, String(v));
     });
-    return request<ListingListResponse>(`/listings?${params}`);
+    return requestWithRetry<ListingListResponse>(`/listings?${params}`);
   },
 
   getListing: (id: number) => request<ListingDetail>(`/listings/${id}`),

@@ -19,6 +19,7 @@ export default function HomePage() {
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [fetchError, setFetchError] = useState(false);
   const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
   const sentinelRef = useRef<HTMLDivElement>(null);
 
@@ -44,8 +45,12 @@ export default function HomePage() {
         setListings((prev) => (append ? [...prev, ...data.items] : data.items));
         setHasMore(data.page < data.total_pages);
         setPage(data.page);
+        setFetchError(false);
       } catch {
-        if (!append) setListings([]);
+        if (!append) {
+          setListings([]);
+          setFetchError(true);
+        }
         setHasMore(false);
       } finally {
         setLoading(false);
@@ -133,6 +138,19 @@ export default function HomePage() {
                 <div className="h-3 w-1/2 animate-pulse rounded bg-muted" />
               </div>
             ))}
+          </div>
+        ) : fetchError ? (
+          <div className="py-24 text-center">
+            <p className="text-muted-foreground">
+              Could not load listings. The backend may be waking up (Render free tier takes ~30–60 seconds).
+            </p>
+            <button
+              type="button"
+              onClick={() => resetAndFetch(filters, selectedAmenities)}
+              className="mt-4 rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-white"
+            >
+              Retry
+            </button>
           </div>
         ) : listings.length === 0 ? (
           <p className="py-24 text-center text-muted-foreground">No listings found. Try adjusting filters.</p>
