@@ -161,58 +161,11 @@ On **mobile**, use the bottom **Profile** tab or the hamburger menu for the same
 | `james@example.com` | Host (20 listings) |
 | `david@example.com` | Host (20 listings) |
 
-You can also **Sign up** / **Log in** with email and password via the profile menu. New accounts are saved to SQLite in the `users` table (see below).
+You can also **Sign up** / **Log in** with email and password via the profile menu.
 
 ### 5. Viewing the database
 
-All server-side data — users, listings, bookings, messages, reviews, wishlists — is stored in a single SQLite file:
-
-```
-d:\projects\airbnb-clone\backend\airbnb.db
-```
-
-The file is created automatically the first time you start the backend. **Sign-up accounts are persisted there** along with anything you book, message, or save. (Notification bell history stays in the browser’s `localStorage`, not in SQLite.)
-
-#### Option A — DB Browser for SQLite (easiest)
-
-If you installed [DB Browser for SQLite](https://sqlitebrowser.org/):
-
-1. Start the backend (`uvicorn` on port 8000).
-2. Open DB Browser → **File → Open Database** → select `backend/airbnb.db`.
-3. Go to the **Browse Data** tab → choose a table (e.g. `users`).
-4. After signing up in the app, click **Refresh** (or reopen the file) to see new rows.
-
-> If the file is missing, start the backend once — it creates and seeds the database on startup.
-
-#### Option B — SQLite command line
-
-If you installed the `sqlite3` CLI and added it to your PATH:
-
-```powershell
-cd d:\projects\airbnb-clone\backend
-sqlite3 airbnb.db
-```
-
-Useful commands inside the `sqlite3` prompt:
-
-```sql
-.tables                          -- list all tables
-SELECT id, name, email, is_host FROM users;
-SELECT * FROM users ORDER BY id DESC LIMIT 5;   -- newest accounts
-.quit                            -- exit
-```
-
-#### What gets stored when you use the app
-
-| Action | SQLite table |
-|--------|----------------|
-| Sign up | `users` |
-| Create / edit listing (host) | `listings`, `listing_photos`, … |
-| Book a stay | `bookings` |
-| Save wishlist | `favorites` |
-| Send a message | `conversations`, `messages` |
-| Leave a review | `reviews` |
-| Verify identity | `users.identity_verified` updated |
+All server-side data is stored in `backend/airbnb.db` (created on first backend startup). Sign-up accounts, bookings, messages, and other app data are saved there. Open the file with [DB Browser for SQLite](https://sqlitebrowser.org/) or any SQLite viewer.
 
 ---
 
