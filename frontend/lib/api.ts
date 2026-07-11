@@ -46,6 +46,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 function normalizeReview(raw: Review): Review {
   return {
     ...raw,
+    guest_id: raw.guest_id ?? 0,
     like_count: raw.like_count ?? 0,
     liked_by_me: raw.liked_by_me ?? false,
     host_reply: raw.host_reply ?? null,
@@ -194,6 +195,20 @@ export const api = {
     request<import("./types").HostReview>(`/reviews/${reviewId}/reply`, {
       method: "POST",
       body: JSON.stringify({ body }),
+    }),
+
+  updateReview: (reviewId: number, data: { rating: number; comment: string }) =>
+    request<Review>(`/reviews/${reviewId}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }).then(normalizeReview),
+
+  deleteReview: (reviewId: number) =>
+    request<void>(`/reviews/${reviewId}`, { method: "DELETE" }),
+
+  deleteReviewReply: (reviewId: number) =>
+    request<import("./types").HostReview>(`/reviews/${reviewId}/reply`, {
+      method: "DELETE",
     }),
 
   getTrackedReviews: () => request<import("./types").ReviewWatch[]>("/reviews/me/tracked"),

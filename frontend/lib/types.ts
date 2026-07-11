@@ -74,6 +74,7 @@ export interface ListingDetail {
 
 export interface Review {
   id: number;
+  guest_id: number;
   rating: number;
   comment: string;
   guest_name: string;

@@ -14,6 +14,8 @@ import {
   Users,
 } from "lucide-react";
 import HostReply from "@/components/HostReply";
+import ReviewEngagement from "@/components/ReviewEngagement";
+import EditReviewModal from "@/components/EditReviewModal";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
 import { useIdentityVerification } from "@/lib/identityVerification";
@@ -54,6 +56,7 @@ export default function ProfilePageClient() {
   const [reviewsOpen, setReviewsOpen] = useState(false);
   const [reviews, setReviews] = useState<GuestReview[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [editReview, setEditReview] = useState<GuestReview | null>(null);
 
   useEffect(() => {
     const t = searchParams.get("tab");
@@ -225,6 +228,21 @@ export default function ProfilePageClient() {
                           ) : (
                             <p className="mt-3 text-xs text-muted-foreground">No host response yet</p>
                           )}
+                          <ReviewEngagement
+                            review={r}
+                            canEditReview
+                            onUpdate={(updated) =>
+                              setReviews((prev) =>
+                                prev.map((item) =>
+                                  item.id === updated.id ? (updated as GuestReview) : item,
+                                ),
+                              )
+                            }
+                            onDelete={(reviewId) =>
+                              setReviews((prev) => prev.filter((item) => item.id !== reviewId))
+                            }
+                            onEdit={(review) => setEditReview(review as GuestReview)}
+                          />
                         </article>
                       ))
                     )}
@@ -259,6 +277,25 @@ export default function ProfilePageClient() {
           )}
         </div>
       </div>
+
+      {editReview && (
+        <EditReviewModal
+          open
+          listingTitle={editReview.listing_title}
+          reviewId={editReview.id}
+          initialRating={editReview.rating}
+          initialComment={editReview.comment}
+          onClose={() => setEditReview(null)}
+          onUpdated={(updated) => {
+            setReviews((prev) =>
+              prev.map((item) =>
+                item.id === updated.id ? { ...item, ...updated } : item,
+              ),
+            );
+            setEditReview(null);
+          }}
+        />
+      )}
     </main>
   );
 }

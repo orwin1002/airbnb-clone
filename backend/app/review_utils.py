@@ -33,6 +33,7 @@ def review_out(
 ) -> ReviewOut:
     return ReviewOut(
         id=review.id,
+        guest_id=review.guest_id,
         rating=review.rating,
         comment=review.comment,
         guest_name=guest_name,

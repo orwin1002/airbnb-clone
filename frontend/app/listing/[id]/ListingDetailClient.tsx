@@ -9,6 +9,7 @@ import BookingSummary from "@/components/BookingSummary";
 import ListingMobileBookingBar from "@/components/ListingMobileBookingBar";
 import BookingModal from "@/components/BookingModal";
 import ReviewsSection from "@/components/ReviewsSection";
+import EditReviewModal from "@/components/EditReviewModal";
 import MessageHostButton from "@/components/MessageHostButton";
 import { api } from "@/lib/api";
 import type { AvailabilityRange, ListingDetail, Review } from "@/lib/types";
@@ -41,6 +42,7 @@ export default function ListingDetailClient({ id }: Props) {
   const [infants, setInfants] = useState(0);
   const [bookingOpen, setBookingOpen] = useState(false);
   const [highlightReviewId, setHighlightReviewId] = useState<number | null>(null);
+  const [editReview, setEditReview] = useState<Review | null>(null);
 
   const guests = adults + children;
 
@@ -230,9 +232,14 @@ export default function ListingDetailClient({ id }: Props) {
               avgRating={listing.avg_rating}
               reviewCount={listing.review_count}
               highlightReviewId={highlightReviewId}
+              currentUserId={user?.id}
               onReviewUpdate={(updated) =>
                 setReviews((prev) => prev.map((r) => (r.id === updated.id ? updated : r)))
               }
+              onReviewDelete={(reviewId) =>
+                setReviews((prev) => prev.filter((r) => r.id !== reviewId))
+              }
+              onReviewEdit={(review) => setEditReview(review)}
             />
           </div>
 
@@ -257,6 +264,21 @@ export default function ListingDetailClient({ id }: Props) {
       </main>
 
       <ListingMobileBookingBar {...bookingProps} />
+
+      {editReview && listing && (
+        <EditReviewModal
+          open
+          listingTitle={listing.title}
+          reviewId={editReview.id}
+          initialRating={editReview.rating}
+          initialComment={editReview.comment}
+          onClose={() => setEditReview(null)}
+          onUpdated={(updated) => {
+            setReviews((prev) => prev.map((r) => (r.id === updated.id ? { ...r, ...updated } : r)));
+            setEditReview(null);
+          }}
+        />
+      )}
     </>
   );
 }

@@ -273,10 +273,15 @@ Interactive docs: **GET /docs**
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | POST | `/reviews` | Yes | Leave a review (requires completed stay) |
+| PATCH | `/reviews/{id}` | Guest | Edit your own review (rating + comment) |
+| DELETE | `/reviews/{id}` | Guest | Delete your own review |
 | POST | `/reviews/{id}/like` | Yes | Toggle like on a review |
 | POST | `/reviews/{id}/reply` | Host | Reply to a review on your listing |
+| DELETE | `/reviews/{id}/reply` | Host | Delete your reply on a review |
 | GET | `/reviews/me/tracked` | Yes | Reviews you wrote or received as host (for notification sync) |
 | GET | `/reviews/me/written` | Yes | Reviews you wrote as a guest (for profile page) |
+
+`ReviewOut` includes `guest_id` so the UI can show edit/delete controls only on your own reviews.
 
 ### Favorites — `/favorites`
 
@@ -322,26 +327,27 @@ Interactive docs: **GET /docs**
 ### Host tools
 - Host dashboard with **Listings**, **Bookings**, and **Reviews** tabs
 - CRUD listings (with delete confirmation), view bookings, **message guests** from bookings
-- **Reply to reviews** and like reviews from the Reviews tab
+- **Reply to reviews** (edit or delete your reply) and like reviews from the Reviews tab
 - **Hosting tab** in mobile bottom nav for host accounts
 
 ### Reviews
 - Post-stay reviews linked to bookings (after checkout, from **Trips**)
+- **Edit or delete your review** — from listing pages, **Trips**, or **Profile** (guest only)
 - **Like reviews** — any logged-in user; counts visible on listing pages
-- **Host replies** — shown on listing pages, **Trips**, and **Profile**; live-updated via polling
+- **Host replies** — edit or delete from the host dashboard; shown on listing pages, **Trips**, and **Profile**; live-updated via polling
 - Review notifications deep-link to the listing review (`/listing/{id}#review-{id}`)
 
 ### Profile
 - **`/profile`** — Airbnb-style profile with sidebar: **About me**, **Past trips**, **Connections**
 - Profile card with avatar initial, name, and Guest/Host label
 - **Complete your profile** — opens mock identity verification
-- **Show reviews I've written** — expandable list with host responses and links to listing reviews
+- **Show reviews I've written** — expandable list with edit/delete, host responses, and links to listing reviews
 
 ### Social & communication
 - Wishlists — save/remove favorites
 - Guest–host **inbox** with read receipts and live polling
 - **Message notifications** — bell alerts when someone sends you a message (polls inbox every 4s)
-- **Review notifications** — bell alerts for new reviews (hosts), likes, and host replies (guests)
+- **Review notifications** — bell alerts for new reviews and review edits (hosts), likes, and host replies (guests)
 
 ### Notifications (client-side)
 - Navbar **notification bell** with unread count
@@ -375,7 +381,7 @@ Interactive docs: **GET /docs**
 9. **SQLite for persistence** — Single-file database; not intended for high-concurrency production without migration to Postgres.
 10. **Infants excluded from capacity** — Search guest count uses adults + children only (infants do not count toward `max_guests`).
 11. **Messaging** — Guests can start conversations from listing pages; hosts can also start conversations with guests from the host dashboard bookings tab.
-12. **Reviews** — One review per completed booking; hosts can post one public reply per review; likes are toggled per user.
+12. **Reviews** — One review per completed booking; guests can edit or delete their own review; hosts can post, edit, or delete one public reply per review; likes are toggled per user.
 13. **Seed data** — 5 guest accounts and 5 host accounts (20 listings each, Bangalore & Mumbai) are pre-loaded for demonstration.
 
 ---

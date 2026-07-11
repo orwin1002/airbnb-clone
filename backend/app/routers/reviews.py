@@ -8,7 +8,7 @@ from app.database import get_db
 from app.dependencies import get_current_user, get_optional_user
 from app.models import Booking, Listing, Review, ReviewLike, User
 from app.review_utils import host_review_out, review_like_count, review_out
-from app.schemas import GuestReviewOut, HostReviewOut, ReviewCreate, ReviewOut, ReviewReplyCreate, ReviewWatchOut
+from app.schemas import GuestReviewOut, HostReviewOut, ReviewCreate, ReviewOut, ReviewReplyCreate, ReviewUpdate, ReviewWatchOut
 
 router = APIRouter(prefix="/reviews", tags=["reviews"])
 
@@ -105,6 +105,86 @@ def reply_to_review(
 
     review.host_reply = body
     review.host_reply_at = datetime.utcnow()
+    db.commit()
+    db.refresh(review)
+
+    return host_review_out(
+        review,
+        review.guest.name,
+        review.listing_id,
+        review.listing.title,
+        db,
+        current_user.id,
+    )
+
+
+@router.patch("/{review_id}", response_model=ReviewOut)
+def update_review(
+    review_id: int,
+    payload: ReviewUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    review = (
+        db.query(Review)
+        .options(joinedload(Review.guest))
+        .filter(Review.id == review_id)
+        .first()
+    )
+    if not review:
+        raise HTTPException(status_code=404, detail="Review not found")
+    if review.guest_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You can only edit your own review")
+
+    comment = payload.comment.strip()
+    if not comment:
+        raise HTTPException(status_code=400, detail="Comment cannot be empty")
+
+    review.rating = payload.rating
+    review.comment = comment
+    db.commit()
+    db.refresh(review)
+
+    return review_out(review, review.guest.name, db, current_user.id)
+
+
+@router.delete("/{review_id}", status_code=204)
+def delete_review(
+    review_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    review = db.query(Review).filter(Review.id == review_id).first()
+    if not review:
+        raise HTTPException(status_code=404, detail="Review not found")
+    if review.guest_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You can only delete your own review")
+
+    db.delete(review)
+    db.commit()
+
+
+@router.delete("/{review_id}/reply", response_model=HostReviewOut)
+def delete_review_reply(
+    review_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    review = (
+        db.query(Review)
+        .options(joinedload(Review.guest), joinedload(Review.listing))
+        .filter(Review.id == review_id)
+        .first()
+    )
+    if not review:
+        raise HTTPException(status_code=404, detail="Review not found")
+    if review.listing.host_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the listing host can delete a reply")
+    if not review.host_reply:
+        raise HTTPException(status_code=400, detail="No reply to delete")
+
+    review.host_reply = None
+    review.host_reply_at = None
     db.commit()
     db.refresh(review)
 

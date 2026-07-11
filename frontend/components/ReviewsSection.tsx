@@ -12,7 +12,10 @@ interface Props {
   avgRating?: number | null;
   reviewCount: number;
   highlightReviewId?: number | null;
+  currentUserId?: number | null;
   onReviewUpdate?: (review: Review) => void;
+  onReviewDelete?: (reviewId: number) => void;
+  onReviewEdit?: (review: Review) => void;
 }
 
 function initials(name: string) {
@@ -43,7 +46,10 @@ export default function ReviewsSection({
   avgRating,
   reviewCount,
   highlightReviewId = null,
+  currentUserId = null,
   onReviewUpdate,
+  onReviewDelete,
+  onReviewEdit,
 }: Props) {
   const sortedReviews = sortReviewsForDisplay(reviews);
 
@@ -114,7 +120,10 @@ export default function ReviewsSection({
                 {hostReply ? <HostReply reply={hostReply} replyAt={r.host_reply_at} className="mt-4" /> : null}
                 <ReviewEngagement
                   review={r}
+                  canEditReview={currentUserId != null && r.guest_id === currentUserId}
                   onUpdate={(updated) => handleUpdate(updated as Review)}
+                  onDelete={onReviewDelete}
+                  onEdit={onReviewEdit}
                 />
               </article>
             );

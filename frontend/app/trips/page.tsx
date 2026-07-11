@@ -6,6 +6,7 @@ import SafeImage from "@/components/SafeImage";
 import CancelBookingModal from "@/components/CancelBookingModal";
 import MessageHostButton from "@/components/MessageHostButton";
 import ReviewModal from "@/components/ReviewModal";
+import EditReviewModal from "@/components/EditReviewModal";
 import HostReply from "@/components/HostReply";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
@@ -19,6 +20,12 @@ export default function TripsPage() {
   const [loading, setLoading] = useState(true);
   const [cancelTarget, setCancelTarget] = useState<Booking | null>(null);
   const [reviewTarget, setReviewTarget] = useState<Booking | null>(null);
+  const [editReview, setEditReview] = useState<{
+    reviewId: number;
+    listingTitle: string;
+    rating: number;
+    comment: string;
+  } | null>(null);
 
   const loadBookings = () => {
     if (!user) return;
@@ -132,12 +139,38 @@ export default function TripsPage() {
                       <span className="text-xs text-muted-foreground">Review submitted</span>
                     )}
                     {b.review_id != null && (
-                      <Link
-                        href={`/listing/${b.listing_id}#review-${b.review_id}`}
-                        className="inline-block text-sm font-medium text-primary hover:underline"
-                      >
-                        View on listing
-                      </Link>
+                      <div className="flex flex-wrap gap-3 sm:justify-end">
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              const written = await api.getMyWrittenReviews();
+                              const match = written.find((r) => r.id === b.review_id);
+                              if (!match) {
+                                showToast("Could not load your review", "error");
+                                return;
+                              }
+                              setEditReview({
+                                reviewId: match.id,
+                                listingTitle: match.listing_title,
+                                rating: match.rating,
+                                comment: match.comment,
+                              });
+                            } catch {
+                              showToast("Could not load your review", "error");
+                            }
+                          }}
+                          className="text-sm font-medium text-primary hover:underline"
+                        >
+                          Edit review
+                        </button>
+                        <Link
+                          href={`/listing/${b.listing_id}#review-${b.review_id}`}
+                          className="text-sm font-medium text-primary hover:underline"
+                        >
+                          View on listing
+                        </Link>
+                      </div>
                     )}
                   </div>
                 )}
@@ -173,6 +206,21 @@ export default function TripsPage() {
           bookingId={reviewTarget.id}
           onClose={() => setReviewTarget(null)}
           onSubmitted={loadBookings}
+        />
+      )}
+
+      {editReview && (
+        <EditReviewModal
+          open
+          listingTitle={editReview.listingTitle}
+          reviewId={editReview.reviewId}
+          initialRating={editReview.rating}
+          initialComment={editReview.comment}
+          onClose={() => setEditReview(null)}
+          onUpdated={() => {
+            setEditReview(null);
+            loadBookings();
+          }}
         />
       )}
     </main>

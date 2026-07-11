@@ -8,6 +8,8 @@ export interface ReviewSyncState {
   like_count: number;
   host_reply_at: string | null;
   created_at: string;
+  rating: number;
+  comment: string;
 }
 
 type ReviewSyncStore = Record<number, ReviewSyncState>;
@@ -43,6 +45,8 @@ export function snapshotReview(review: ReviewWatch): ReviewSyncState {
     like_count: review.like_count,
     host_reply_at: review.host_reply_at ?? null,
     created_at: review.created_at,
+    rating: review.rating,
+    comment: review.comment,
   };
 }
 
@@ -154,6 +158,25 @@ export async function syncReviewNotifications(
           userId,
           eventAt: replyAt,
           dedupeKey: `review:${userId}:reply:${review.id}:${replyAt}`,
+          href: reviewListingHref(review.listing_id, review.id),
+        }
+      );
+    }
+
+    const hadContentSnapshot = prev.rating != null && prev.comment != null;
+    const reviewEdited =
+      hadContentSnapshot &&
+      (review.rating !== prev.rating || review.comment !== prev.comment);
+    if (isHost && reviewEdited) {
+      addNotification(
+        "Review updated",
+        `${review.guest_name} updated their review on ${review.listing_title}`,
+        "review",
+        {
+          toast: toastNew,
+          userId,
+          eventAt: new Date().toISOString(),
+          dedupeKey: `review:${userId}:edited:${review.id}:${review.rating}:${review.comment.length}`,
           href: reviewListingHref(review.listing_id, review.id),
         }
       );

@@ -83,6 +83,7 @@ class ListingListResponse(BaseModel):
 
 class ReviewOut(BaseModel):
     id: int
+    guest_id: int
     rating: int
     comment: str
     guest_name: str
@@ -120,6 +121,11 @@ class ReviewWatchOut(BaseModel):
 
 class ReviewReplyCreate(BaseModel):
     body: str = Field(min_length=1, max_length=2000)
+
+
+class ReviewUpdate(BaseModel):
+    rating: int = Field(ge=1, le=5)
+    comment: str = Field(min_length=1, max_length=2000)
 
 
 class ListingDetailOut(BaseModel):

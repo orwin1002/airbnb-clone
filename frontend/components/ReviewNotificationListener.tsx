@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/auth";
 import { useNotifications } from "@/lib/notifications";
 import { syncReviewNotifications } from "@/lib/reviewNotifications";
 
-/** Poll review activity and notify hosts/guests about new reviews, likes, and replies. */
+/** Poll review activity and notify hosts/guests about new reviews, likes, replies, and edits. */
 export default function ReviewNotificationListener() {
   const { user } = useAuth();
   const { addNotification } = useNotifications();
