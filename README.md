@@ -2,11 +2,7 @@
 
 A full-stack Airbnb-style vacation rental platform. Guests can search and book stays, save wishlists, message hosts, and leave reviews. Hosts can create and manage listings and view incoming bookings. The UI is photo-forward, mobile-first, and supports dark mode, interactive maps, in-app notifications, and mock identity verification.
 
-**Live demo:** https://airbnb-clone-rho-ivory.vercel.app  
-**API docs:** https://airbnb-clone.onrender.com/docs  
 **Repo:** https://github.com/orwin1002/airbnb-clone
-
-> The live backend runs on Render’s free tier and may take 30–60 seconds to respond on the first visit after idle time.
 
 ---
 
@@ -80,9 +76,7 @@ airbnb-clone/
 │   │   ├── seed.py           # Demo data (users, listings, bookings, …)
 │   │   └── routers/          # auth, listings, bookings, hosts, reviews, favorites, messages
 │   ├── requirements.txt
-│   ├── Procfile              # Render deployment
 │   └── airbnb.db             # SQLite file (created at runtime, gitignored)
-├── render.yaml               # Render Blueprint config
 └── README.md
 ```
 
@@ -167,11 +161,58 @@ On **mobile**, use the bottom **Profile** tab or the hamburger menu for the same
 | `james@example.com` | Host (20 listings) |
 | `david@example.com` | Host (20 listings) |
 
-You can also **Sign up** / **Log in** with email and password via the profile menu.
+You can also **Sign up** / **Log in** with email and password via the profile menu. New accounts are saved to SQLite in the `users` table (see below).
 
 ### 5. Viewing the database
 
-The SQLite file is at `backend/airbnb.db`. Open it with [DB Browser for SQLite](https://sqlitebrowser.org/) or any SQLite viewer.
+All server-side data — users, listings, bookings, messages, reviews, wishlists — is stored in a single SQLite file:
+
+```
+d:\projects\airbnb-clone\backend\airbnb.db
+```
+
+The file is created automatically the first time you start the backend. **Sign-up accounts are persisted there** along with anything you book, message, or save. (Notification bell history stays in the browser’s `localStorage`, not in SQLite.)
+
+#### Option A — DB Browser for SQLite (easiest)
+
+If you installed [DB Browser for SQLite](https://sqlitebrowser.org/):
+
+1. Start the backend (`uvicorn` on port 8000).
+2. Open DB Browser → **File → Open Database** → select `backend/airbnb.db`.
+3. Go to the **Browse Data** tab → choose a table (e.g. `users`).
+4. After signing up in the app, click **Refresh** (or reopen the file) to see new rows.
+
+> If the file is missing, start the backend once — it creates and seeds the database on startup.
+
+#### Option B — SQLite command line
+
+If you installed the `sqlite3` CLI and added it to your PATH:
+
+```powershell
+cd d:\projects\airbnb-clone\backend
+sqlite3 airbnb.db
+```
+
+Useful commands inside the `sqlite3` prompt:
+
+```sql
+.tables                          -- list all tables
+SELECT id, name, email, is_host FROM users;
+SELECT * FROM users ORDER BY id DESC LIMIT 5;   -- newest accounts
+.quit                            -- exit
+```
+
+#### What gets stored when you use the app
+
+| Action | SQLite table |
+|--------|----------------|
+| Sign up | `users` |
+| Create / edit listing (host) | `listings`, `listing_photos`, … |
+| Book a stay | `bookings` |
+| Save wishlist | `favorites` |
+| Send a message | `conversations`, `messages` |
+| Leave a review | `reviews` |
+| Verify identity | `users.identity_verified` updated |
 
 ---
 
@@ -222,7 +263,7 @@ erDiagram
 
 ## API Overview
 
-Base URL: `http://localhost:8000` (or your deployed backend URL).
+Base URL: `http://localhost:8000`
 
 **Authentication:** After login, send `X-User-Id: <user_id>` on protected routes. The frontend handles this automatically.
 
@@ -339,45 +380,6 @@ Interactive docs: **GET /docs**
 ### Other
 - Dark mode — system / manual toggle via `next-themes`
 - Guest favourite badge — avg rating ≥ 4.7 with ≥ 3 reviews
-
----
-
-## Deployment
-
-The project is set up for **Vercel** (frontend) + **Render** (backend). Pushing to `main` triggers automatic deploys on both platforms.
-
-| Service | URL | Dashboard |
-|---------|-----|-----------|
-| **Frontend** | https://airbnb-clone-rho-ivory.vercel.app | [vercel.com/dashboard](https://vercel.com/dashboard) |
-| **Backend** | https://airbnb-clone.onrender.com | [dashboard.render.com](https://dashboard.render.com) |
-
-### After pushing to GitHub
-
-1. **Vercel** — open your project → **Deployments** → wait until the latest build shows **Ready** (~1–3 min).
-2. **Render** — open your web service → **Events** / **Logs** → wait for deploy to finish (~3–5 min on free tier).
-3. Hard refresh the live site (`Ctrl+Shift+R`) or open in incognito to avoid cached assets.
-
-### Environment variables
-
-**Vercel** (frontend):
-
-| Variable | Value |
-|----------|-------|
-| `NEXT_PUBLIC_API_URL` | `https://airbnb-clone.onrender.com` |
-
-**Render** (backend):
-
-| Variable | Value |
-|----------|-------|
-| `CORS_ORIGINS` | Your Vercel URL(s), e.g. `https://airbnb-clone-rho-ivory.vercel.app` (wildcard `*.vercel.app` also supported) |
-
-### Local vs production
-
-| | Local | Production |
-|---|-------|------------|
-| Frontend | http://localhost:3000 | Vercel URL |
-| Backend | http://localhost:8000 | Render URL |
-| Database | `backend/airbnb.db` (local file) | Render ephemeral disk (re-seeded on deploy) |
 
 ---
 
