@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Star } from "lucide-react";
 import ReviewEngagement from "@/components/ReviewEngagement";
 import { formatMessageTimestamp } from "@/lib/dates";
+import { getVisibleReviews, hasHiddenHostReplies, sortReviewsForDisplay } from "@/lib/reviews";
 import type { Review } from "@/lib/types";
 
 interface Props {
@@ -57,25 +58,30 @@ export default function ReviewsSection({
   onReviewUpdate,
 }: Props) {
   const [showAll, setShowAll] = useState(false);
+  const sortedReviews = sortReviewsForDisplay(reviews);
 
   useEffect(() => {
     if (highlightReviewId == null) return;
-    const idx = reviews.findIndex((r) => r.id === highlightReviewId);
+    const idx = sortedReviews.findIndex((r) => r.id === highlightReviewId);
     if (idx >= 6) setShowAll(true);
-  }, [highlightReviewId, reviews]);
+  }, [highlightReviewId, sortedReviews]);
 
   useEffect(() => {
-    if (highlightReviewId == null || reviews.length === 0) return;
+    if (hasHiddenHostReplies(reviews)) setShowAll(true);
+  }, [reviews]);
+
+  useEffect(() => {
+    if (highlightReviewId == null || sortedReviews.length === 0) return;
     const timer = window.setTimeout(() => {
       document.getElementById(`review-${highlightReviewId}`)?.scrollIntoView({
         behavior: "smooth",
         block: "center",
       });
-    }, 100);
+    }, 150);
     return () => window.clearTimeout(timer);
-  }, [highlightReviewId, reviews, showAll]);
+  }, [highlightReviewId, sortedReviews, showAll]);
 
-  const visible = showAll ? reviews : reviews.slice(0, 6);
+  const visible = getVisibleReviews(reviews, showAll, highlightReviewId);
 
   const handleUpdate = (updated: Review) => {
     onReviewUpdate?.(updated);
@@ -134,9 +140,9 @@ export default function ReviewsSection({
                   </div>
                   <Stars rating={r.rating} />
                   <p className="mt-3 text-[15px] leading-relaxed text-foreground/90">{r.comment}</p>
-                  {r.host_reply && (
+                  {r.host_reply?.trim() ? (
                     <HostReply reply={r.host_reply} replyAt={r.host_reply_at} />
-                  )}
+                  ) : null}
                   <ReviewEngagement
                     review={r}
                     onUpdate={(updated) => handleUpdate(updated as Review)}

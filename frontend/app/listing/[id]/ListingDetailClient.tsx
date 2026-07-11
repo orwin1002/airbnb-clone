@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
+import { usePathname } from "next/navigation";
 import { Star, MapPin } from "lucide-react";
 import Gallery from "@/components/Gallery";
 import BookingSummary from "@/components/BookingSummary";
@@ -26,6 +27,7 @@ interface Props {
 }
 
 export default function ListingDetailClient({ id }: Props) {
+  const pathname = usePathname();
   const { user } = useAuth();
   const { showToast } = useToast();
   const { openVerification } = useIdentityVerification();
@@ -65,7 +67,13 @@ export default function ListingDetailClient({ id }: Props) {
     parseHash();
     window.addEventListener("hashchange", parseHash);
     return () => window.removeEventListener("hashchange", parseHash);
-  }, [id]);
+  }, [id, pathname]);
+
+  useEffect(() => {
+    if (reviews.length === 0) return;
+    const match = window.location.hash.match(/^#review-(\d+)$/);
+    if (match) setHighlightReviewId(Number(match[1]));
+  }, [reviews]);
 
   useEffect(() => {
     const poll = () => {

@@ -128,6 +128,9 @@ export interface Booking {
   created_at: string;
   has_review: boolean;
   can_review: boolean;
+  review_id?: number | null;
+  host_reply?: string | null;
+  host_reply_at?: string | null;
 }
 
 export interface RefundPreview {

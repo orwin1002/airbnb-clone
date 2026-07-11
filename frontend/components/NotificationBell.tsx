@@ -1,13 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Bell } from "lucide-react";
 import { formatRelativeTimestamp } from "@/lib/dates";
 import { useNotifications } from "@/lib/notifications";
 
 export default function NotificationBell() {
-  const router = useRouter();
   const { notifications, unreadCount, markRead, markAllRead, clearAll } = useNotifications();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -16,7 +14,7 @@ export default function NotificationBell() {
     markRead(id);
     if (href) {
       setOpen(false);
-      router.push(href);
+      window.location.href = href;
     }
   };
 

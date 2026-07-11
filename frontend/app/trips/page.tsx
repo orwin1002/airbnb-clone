@@ -8,6 +8,7 @@ import MessageHostButton from "@/components/MessageHostButton";
 import ReviewModal from "@/components/ReviewModal";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
+import { formatMessageTimestamp } from "@/lib/dates";
 import type { Booking } from "@/lib/types";
 import { useToast } from "@/lib/toast";
 
@@ -34,6 +35,13 @@ export default function TripsPage() {
       return;
     }
     loadBookings();
+    const interval = setInterval(loadBookings, 5000);
+    const onFocus = () => loadBookings();
+    window.addEventListener("focus", onFocus);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", onFocus);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
@@ -117,7 +125,29 @@ export default function TripsPage() {
                   </button>
                 )}
                 {b.has_review && (
-                  <span className="text-xs text-muted-foreground">Review submitted</span>
+                  <div className="w-full space-y-2 sm:text-right">
+                    {b.host_reply?.trim() ? (
+                      <div className="rounded-xl border border-primary/20 bg-primary/5 px-3 py-2.5 text-left sm:max-w-xs sm:ml-auto">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-primary">Host response</p>
+                        <p className="mt-1 text-sm leading-relaxed">{b.host_reply}</p>
+                        {b.host_reply_at && (
+                          <p className="mt-1 text-[11px] text-muted-foreground">
+                            {formatMessageTimestamp(b.host_reply_at)}
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Review submitted</span>
+                    )}
+                    {b.review_id != null && (
+                      <Link
+                        href={`/listing/${b.listing_id}#review-${b.review_id}`}
+                        className="inline-block text-sm font-medium text-primary hover:underline"
+                      >
+                        View on listing
+                      </Link>
+                    )}
+                  </div>
                 )}
                 {b.status === "confirmed" && new Date(b.check_out) >= new Date() && (
                   <button

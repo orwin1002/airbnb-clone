@@ -56,9 +56,8 @@ def _booking_out(
     today: date | None = None,
 ) -> BookingOut:
     today = today or date.today()
-    has_review = (
-        db.query(Review).filter(Review.booking_id == booking.id).first() is not None
-    )
+    review = db.query(Review).filter(Review.booking_id == booking.id).first()
+    has_review = review is not None
     can_review = (
         booking.status == "confirmed"
         and booking.check_out < today
@@ -90,6 +89,9 @@ def _booking_out(
         created_at=booking.created_at,
         has_review=has_review,
         can_review=can_review,
+        review_id=review.id if review else None,
+        host_reply=review.host_reply if review else None,
+        host_reply_at=review.host_reply_at if review else None,
     )
 
 

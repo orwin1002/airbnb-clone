@@ -208,6 +208,9 @@ class BookingOut(BaseModel):
     created_at: datetime
     has_review: bool = False
     can_review: bool = False
+    review_id: Optional[int] = None
+    host_reply: Optional[str] = None
+    host_reply_at: Optional[datetime] = None
 
 
 # --- Reviews ---
