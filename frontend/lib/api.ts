@@ -75,6 +75,9 @@ export const api = {
 
   me: () => request<User>("/auth/me"),
 
+  verifyIdentity: () =>
+    request<User>("/auth/verify-identity", { method: "POST" }),
+
   getListings: (filters: SearchFilters = {}) => {
     const params = new URLSearchParams();
     const { adults, children, infants, q, ...apiFilters } = filters;

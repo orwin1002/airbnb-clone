@@ -27,6 +27,7 @@ class UserOut(BaseModel):
     email: str
     role: str
     is_host: bool
+    identity_verified: bool = False
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -60,6 +61,8 @@ class ListingCardOut(BaseModel):
     title: str
     location_city: str
     location_area: str
+    lat: Optional[float] = None
+    lng: Optional[float] = None
     price_per_night: float
     property_type: str
     vibe: str

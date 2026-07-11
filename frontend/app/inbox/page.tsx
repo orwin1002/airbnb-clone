@@ -20,11 +20,16 @@ export default function InboxPage() {
       setLoading(false);
       return;
     }
-    api
-      .getConversations()
-      .then(setConversations)
-      .catch(() => showToast("Failed to load inbox", "error"))
-      .finally(() => setLoading(false));
+    const load = () =>
+      api
+        .getConversations()
+        .then(setConversations)
+        .catch(() => showToast("Failed to load inbox", "error"))
+        .finally(() => setLoading(false));
+
+    load();
+    const interval = setInterval(load, 8000);
+    return () => clearInterval(interval);
   }, [user, showToast]);
 
   if (!user) {

@@ -295,57 +295,93 @@ LISTINGS_DATA = [
     },
     {
         "host_idx": 3,
-        "title": "Rishikesh Ganges Riverside Retreat",
-        "description": "Peaceful stay on the banks of the Ganges near Laxman Jhula. Yoga deck, riverside aarti views, and easy access to cafés and rafting points.",
-        "city": "Rishikesh",
-        "area": "Tapovan",
-        "lat": 30.1290,
-        "lng": 78.3153,
-        "price": 2900,
-        "property_type": "Private room",
-        "vibe": "Trending",
-        "guests": 2,
+        "title": "Indiranagar Brewpub District Loft",
+        "description": "Industrial-chic loft on 100 Feet Road with brewery crawl access, metro nearby, and a sunny balcony perfect for morning filter coffee.",
+        "city": "Bangalore",
+        "area": "Indiranagar",
+        "lat": 12.9784,
+        "lng": 77.6408,
+        "price": 3400,
+        "property_type": "Apartment",
+        "vibe": "City",
+        "guests": 3,
         "bedrooms": 1,
-        "beds": 1,
+        "beds": 2,
         "baths": 1,
-        "photos": [IMG["riverside"], IMG["mountain"]],
-        "amenities": ["WiFi", "Breakfast", "Workspace"],
+        "photos": [IMG["loft"], IMG["modern"]],
+        "amenities": ["WiFi", "Workspace", "Kitchen", "Air conditioning"],
     },
     {
         "host_idx": 0,
-        "title": "Varanasi Ghats Heritage Guesthouse",
-        "description": "Wake to temple bells and boat rides on the Ganges. Heritage guesthouse near Assi Ghat with rooftop chai and Banarasi silk shops nearby.",
-        "city": "Varanasi",
-        "area": "Assi Ghat",
-        "lat": 25.2854,
-        "lng": 83.0060,
-        "price": 2200,
+        "title": "Whitefield Tech Park Side Apartment",
+        "description": "Modern 1BHK near ITPL and Phoenix Marketcity. High-speed WiFi, gated community pool, and quick access to metro and airport.",
+        "city": "Bangalore",
+        "area": "Whitefield",
+        "lat": 12.9698,
+        "lng": 77.7500,
+        "price": 3100,
+        "property_type": "Apartment",
+        "vibe": "City",
+        "guests": 2,
+        "bedrooms": 1,
+        "beds": 1,
+        "baths": 1,
+        "photos": [IMG["modern"], IMG["apartment"]],
+        "amenities": ["WiFi", "Pool", "Workspace", "Air conditioning"],
+    },
+    {
+        "host_idx": 2,
+        "title": "Jayanagar South Bangalore Homestay",
+        "description": "Quiet homestay in leafy Jayanagar 4th Block, close to Lalbagh, South Indian breakfast, and classic Bangalore café culture.",
+        "city": "Bangalore",
+        "area": "Jayanagar",
+        "lat": 12.9250,
+        "lng": 77.5938,
+        "price": 2800,
         "property_type": "Private room",
         "vibe": "Trending",
         "guests": 2,
         "bedrooms": 1,
         "beds": 1,
         "baths": 1,
-        "photos": [IMG["heritage"], IMG["riverside"]],
-        "amenities": ["WiFi", "Breakfast", "Housekeeping"],
+        "photos": [IMG["interior"], IMG["heritage"]],
+        "amenities": ["WiFi", "Breakfast", "Kitchen"],
+    },
+    {
+        "host_idx": 3,
+        "title": "HSR Layout Startup Studio",
+        "description": "Compact studio in HSR Layout's café district — ideal for founders and remote workers with 24/7 security and fiber internet.",
+        "city": "Bangalore",
+        "area": "HSR Layout",
+        "lat": 12.9116,
+        "lng": 77.6473,
+        "price": 3000,
+        "property_type": "Apartment",
+        "vibe": "Trending",
+        "guests": 2,
+        "bedrooms": 1,
+        "beds": 1,
+        "baths": 1,
+        "photos": [IMG["loft"], IMG["city_view"]],
+        "amenities": ["WiFi", "Workspace", "Air conditioning", "Power backup"],
     },
     {
         "host_idx": 2,
-        "title": "Pondicherry French Quarter Villa",
-        "description": "Colonial villa on a quiet French Quarter lane. Yellow walls, arched doorways, bicycle rentals, and Promenade Beach a short stroll away.",
-        "city": "Pondicherry",
-        "area": "White Town",
-        "lat": 11.9344,
-        "lng": 79.8306,
-        "price": 4100,
-        "property_type": "Villa",
+        "title": "Malleshwaram Heritage Bungalow Room",
+        "description": "Charming room in an old Bangalore bungalow near Malleshwaram market, filter coffee stalls, and Mantri Square.",
+        "city": "Bangalore",
+        "area": "Malleshwaram",
+        "lat": 13.0035,
+        "lng": 77.5646,
+        "price": 2600,
+        "property_type": "Private room",
         "vibe": "Trending",
-        "guests": 4,
-        "bedrooms": 2,
-        "beds": 2,
+        "guests": 2,
+        "bedrooms": 1,
+        "beds": 1,
         "baths": 1,
-        "photos": [IMG["heritage"], IMG["beach"]],
-        "amenities": ["WiFi", "Kitchen", "Free parking", "Air conditioning"],
+        "photos": [IMG["heritage"], IMG["interior"]],
+        "amenities": ["WiFi", "Breakfast", "Housekeeping"],
     },
     {
         "host_idx": 3,
@@ -403,6 +439,14 @@ LISTINGS_DATA = [
     },
 ]
 
+# Spread duplicate template coords so map pins don't stack (variant 0–4).
+COORD_OFFSETS = [
+    (0.0, 0.0),
+    (0.014, 0.011),
+    (-0.011, 0.016),
+    (0.017, -0.013),
+    (-0.016, -0.014),
+]
 LEGACY_CITIES = {"Austin", "New York", "Chicago", "Los Angeles"}
 NUM_HOSTS = 5
 NUM_GUESTS = 5
@@ -478,7 +522,16 @@ def build_listings_catalog() -> list[dict]:
             else f"{base['area']} {AREA_SUFFIXES[variant % len(AREA_SUFFIXES)]}"
         )
         price = base["price"] + (variant * 173) % 1800
-        catalog.append({**base, "title": title, "area": area, "price": price})
+        round_idx = idx % len(LISTINGS_DATA)
+        lat_off, lng_off = COORD_OFFSETS[variant % len(COORD_OFFSETS)]
+        catalog.append({
+            **base,
+            "title": title,
+            "area": area,
+            "price": price,
+            "lat": round(base["lat"] + lat_off, 6),
+            "lng": round(base["lng"] + lng_off, 6),
+        })
         idx += 1
     return catalog
 
@@ -509,6 +562,16 @@ def _needs_reseed(db: Session) -> bool:
     for fragment in dead_photos:
         if db.query(ListingPhoto).filter(ListingPhoto.url.ilike(f"%{fragment}%")).first():
             return True
+    if db.query(Listing).filter(Listing.location_city == "Bangalore").count() < 30:
+        return True
+    dup_coords = (
+        db.query(Listing.lat, Listing.lng, Listing.location_city)
+        .filter(Listing.location_city.in_(["Mumbai", "Bangalore"]))
+        .all()
+    )
+    coord_keys = [(r[0], r[1], r[2]) for r in dup_coords]
+    if len(coord_keys) != len(set(coord_keys)):
+        return True
     return False
 
 

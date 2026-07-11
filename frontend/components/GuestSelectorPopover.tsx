@@ -8,6 +8,9 @@ interface Props {
   children?: number;
   infants?: number;
   onChange: (counts: { adults?: number; children?: number; infants?: number }) => void;
+  variant?: "search" | "field";
+  maxGuestCapacity?: number;
+  minAdults?: number;
 }
 
 function CounterRow({
@@ -68,7 +71,15 @@ export function guestLabel(adults = 0, children = 0, infants = 0) {
   return parts.join(", ");
 }
 
-export default function GuestSelectorPopover({ adults = 0, children = 0, infants = 0, onChange }: Props) {
+export default function GuestSelectorPopover({
+  adults = 0,
+  children = 0,
+  infants = 0,
+  onChange,
+  variant = "search",
+  maxGuestCapacity,
+  minAdults = 0,
+}: Props) {
   const [open, setOpen] = useState(false);
   const [draftAdults, setDraftAdults] = useState(adults);
   const [draftChildren, setDraftChildren] = useState(children);
@@ -92,8 +103,9 @@ export default function GuestSelectorPopover({ adults = 0, children = 0, infants
   }, [open]);
 
   const apply = () => {
+    const nextAdults = Math.max(minAdults, draftAdults);
     onChange({
-      adults: draftAdults || undefined,
+      adults: nextAdults || undefined,
       children: draftChildren || undefined,
       infants: draftInfants || undefined,
     });
@@ -101,12 +113,19 @@ export default function GuestSelectorPopover({ adults = 0, children = 0, infants
   };
 
   const clear = () => {
-    setDraftAdults(0);
+    setDraftAdults(minAdults);
     setDraftChildren(0);
     setDraftInfants(0);
-    onChange({});
+    onChange({
+      adults: minAdults || undefined,
+      children: undefined,
+      infants: undefined,
+    });
     setOpen(false);
   };
+
+  const guestTotal = draftAdults + draftChildren;
+  const atCapacity = maxGuestCapacity != null && guestTotal >= maxGuestCapacity;
 
   const panel = (
     <div className="w-full sm:w-[340px]">
@@ -114,9 +133,10 @@ export default function GuestSelectorPopover({ adults = 0, children = 0, infants
         label="Adults"
         sublabel="Ages 13 or above"
         value={draftAdults}
-        onDecrement={() => setDraftAdults(Math.max(0, draftAdults - 1))}
+        onDecrement={() => setDraftAdults(Math.max(minAdults, draftAdults - 1))}
         onIncrement={() => setDraftAdults(draftAdults + 1)}
-        disableDecrement={draftAdults <= 0}
+        disableDecrement={draftAdults <= minAdults}
+        disableIncrement={atCapacity}
       />
       <CounterRow
         label="Children"
@@ -125,6 +145,7 @@ export default function GuestSelectorPopover({ adults = 0, children = 0, infants
         onDecrement={() => setDraftChildren(Math.max(0, draftChildren - 1))}
         onIncrement={() => setDraftChildren(draftChildren + 1)}
         disableDecrement={draftChildren <= 0}
+        disableIncrement={atCapacity}
       />
       <CounterRow
         label="Infants"
@@ -150,14 +171,27 @@ export default function GuestSelectorPopover({ adults = 0, children = 0, infants
   );
 
   return (
-    <div ref={ref} className="relative flex-1">
+    <div ref={ref} className={variant === "search" ? "relative flex-1" : "relative"}>
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="w-full py-2.5 text-left transition hover:bg-muted/40 sm:py-2"
+        className={
+          variant === "search"
+            ? "w-full py-2.5 text-left transition hover:bg-muted/40 sm:py-2"
+            : "grid w-full rounded-xl border border-border text-left transition hover:shadow-sm"
+        }
       >
-        <span className="block text-xs font-semibold">Who</span>
-        <span className="text-sm">{guestLabel(adults, children, infants)}</span>
+        {variant === "search" ? (
+          <>
+            <span className="block text-xs font-semibold">Who</span>
+            <span className="text-sm">{guestLabel(adults, children, infants)}</span>
+          </>
+        ) : (
+          <div className="px-3 py-2.5">
+            <span className="block text-[10px] font-bold uppercase tracking-wide">Guests</span>
+            <span className="text-sm">{guestLabel(adults, children, infants)}</span>
+          </div>
+        )}
       </button>
 
       {open && (
@@ -168,7 +202,11 @@ export default function GuestSelectorPopover({ adults = 0, children = 0, infants
             {panel}
           </div>
           <div
-            className="absolute right-0 top-full z-[70] mt-3 hidden rounded-2xl border border-border bg-card p-5 shadow-elevated sm:block"
+            className={
+              variant === "field"
+                ? "absolute left-0 right-0 top-full z-50 mt-2 hidden rounded-2xl border border-border bg-card p-5 shadow-elevated sm:block sm:left-auto sm:right-0 sm:min-w-[340px]"
+                : "absolute right-0 top-full z-[70] mt-3 hidden rounded-2xl border border-border bg-card p-5 shadow-elevated sm:block"
+            }
             onMouseDown={(e) => e.stopPropagation()}
           >
             {panel}

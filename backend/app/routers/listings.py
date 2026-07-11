@@ -45,6 +45,8 @@ def _listing_card(listing: Listing, db: Session) -> ListingCardOut:
         title=listing.title,
         location_city=listing.location_city,
         location_area=listing.location_area,
+        lat=listing.lat,
+        lng=listing.lng,
         price_per_night=listing.price_per_night,
         property_type=listing.property_type,
         vibe=listing.vibe,
@@ -100,6 +102,7 @@ def list_listings(
     vibe: str | None = None,
     amenities: str | None = None,
     page: int = Query(1, ge=1),
+    page_size: int = Query(PAGE_SIZE, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
     query = db.query(Listing)
@@ -144,16 +147,16 @@ def list_listings(
     total = query.count()
     listings = (
         query.order_by(Listing.created_at.desc())
-        .offset((page - 1) * PAGE_SIZE)
-        .limit(PAGE_SIZE)
+        .offset((page - 1) * page_size)
+        .limit(page_size)
         .all()
     )
     return ListingListResponse(
         items=[_listing_card(l, db) for l in listings],
         total=total,
         page=page,
-        page_size=PAGE_SIZE,
-        total_pages=max(1, ceil(total / PAGE_SIZE)),
+        page_size=page_size,
+        total_pages=max(1, ceil(total / page_size)),
     )
 
 

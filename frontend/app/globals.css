@@ -114,3 +114,19 @@ textarea {
   cursor: pointer;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
 }
+
+.price-marker-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
+.leaflet-popup-content-wrapper {
+  padding: 0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.leaflet-popup-content {
+  margin: 0;
+  min-width: 220px;
+}

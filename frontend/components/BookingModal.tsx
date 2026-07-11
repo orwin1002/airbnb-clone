@@ -6,6 +6,7 @@ import { X } from "lucide-react";
 import { api } from "@/lib/api";
 import type { Booking, ListingDetail } from "@/lib/types";
 import { useToast } from "@/lib/toast";
+import { useNotifications } from "@/lib/notifications";
 
 type Step = "summary" | "checkout" | "confirmation";
 
@@ -32,6 +33,7 @@ export default function BookingModal({
   onSuccess,
 }: Props) {
   const { showToast } = useToast();
+  const { addNotification } = useNotifications();
   const [step, setStep] = useState<Step>("summary");
   const [loading, setLoading] = useState(false);
   const [booking, setBooking] = useState<Booking | null>(null);
@@ -78,6 +80,12 @@ export default function BookingModal({
       setBooking(result);
       setStep("confirmation");
       showToast("Booking confirmed!", "success");
+      addNotification(
+        "Booking confirmed",
+        `${listing.title} · ${checkIn} to ${checkOut}`,
+        "booking",
+        { toast: false }
+      );
       onSuccess();
     } catch (e) {
       showToast(e instanceof Error ? e.message : "Booking failed", "error");

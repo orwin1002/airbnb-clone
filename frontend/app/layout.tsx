@@ -3,8 +3,14 @@ import { Geist } from "next/font/google";
 import { Toaster } from "sonner";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
+import MobileBottomNav from "@/components/MobileBottomNav";
+import PageShell from "@/components/PageShell";
+import IdentityVerificationModal from "@/components/IdentityVerificationModal";
+import MessageNotificationListener from "@/components/MessageNotificationListener";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider } from "@/lib/auth";
+import { NotificationProvider } from "@/lib/notifications";
+import { IdentityVerificationProvider } from "@/lib/identityVerification";
 
 const geist = Geist({
   variable: "--font-geist-sans",
@@ -26,9 +32,16 @@ export default function RootLayout({
       <body className={`${geist.variable} min-h-screen bg-background text-foreground antialiased`}>
         <ThemeProvider>
           <AuthProvider>
-            <Navbar />
-            {children}
-            <Toaster position="bottom-right" richColors closeButton />
+            <NotificationProvider>
+              <IdentityVerificationProvider>
+                <Navbar />
+                <PageShell>{children}</PageShell>
+                <MobileBottomNav />
+                <IdentityVerificationModal />
+                <MessageNotificationListener />
+                <Toaster position="bottom-right" richColors closeButton />
+              </IdentityVerificationProvider>
+            </NotificationProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

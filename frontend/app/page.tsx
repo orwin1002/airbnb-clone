@@ -1,20 +1,31 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { SlidersHorizontal } from "lucide-react";
+import dynamic from "next/dynamic";
+import { Map, SlidersHorizontal } from "lucide-react";
 import ListingCard from "@/components/ListingCard";
 import SearchBar from "@/components/SearchBar";
 import FiltersModal, { countActiveFilters } from "@/components/FiltersModal";
+import MapModal from "@/components/MapModal";
 import { api } from "@/lib/api";
 import type { ListingCard as ListingCardType, SearchFilters } from "@/lib/types";
 import { useAuth } from "@/lib/auth";
+
+const SearchResultsMap = dynamic(() => import("@/components/SearchResultsMap"), {
+  ssr: false,
+  loading: () => <div className="h-full animate-pulse rounded-xl bg-muted" />,
+});
 
 export default function HomePage() {
   const { user } = useAuth();
   const [filters, setFilters] = useState<SearchFilters>({ page: 1 });
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [mapOpen, setMapOpen] = useState(false);
+  const [showMap, setShowMap] = useState(false);
+  const [highlightedId, setHighlightedId] = useState<number | null>(null);
   const [listings, setListings] = useState<ListingCardType[]>([]);
+  const [mapListings, setMapListings] = useState<ListingCardType[]>([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -22,6 +33,7 @@ export default function HomePage() {
   const [fetchError, setFetchError] = useState(false);
   const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const cardRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
   const buildFilters = useCallback(
     (f: SearchFilters, p: number, amenities: string[]) => {
@@ -60,13 +72,30 @@ export default function HomePage() {
     [buildFilters]
   );
 
+  const fetchMapListings = useCallback(
+    async (f: SearchFilters, amenities: string[]) => {
+      try {
+        const data = await api.getListings({
+          ...buildFilters(f, 1, amenities),
+          page_size: 100,
+        });
+        setMapListings(data.items);
+      } catch {
+        setMapListings([]);
+      }
+    },
+    [buildFilters]
+  );
+
   const resetAndFetch = useCallback(
     (f: SearchFilters, amenities: string[]) => {
       setPage(1);
       setHasMore(true);
+      if (f.q?.trim()) setShowMap(true);
       fetchPage(f, 1, amenities, false);
+      fetchMapListings(f, amenities);
     },
-    [fetchPage]
+    [fetchPage, fetchMapListings]
   );
 
   useEffect(() => {
@@ -79,6 +108,12 @@ export default function HomePage() {
       api.getFavorites().then((favs) => setFavoriteIds(new Set(favs.map((f) => f.id)))).catch(() => {});
     }
   }, [user]);
+
+  useEffect(() => {
+    if (showMap || mapOpen) {
+      fetchMapListings(filters, selectedAmenities);
+    }
+  }, [showMap, mapOpen, filters, selectedAmenities, fetchMapListings]);
 
   useEffect(() => {
     const el = sentinelRef.current;
@@ -96,7 +131,37 @@ export default function HomePage() {
     return () => observer.disconnect();
   }, [hasMore, loading, loadingMore, page, filters, selectedAmenities, fetchPage]);
 
+  useEffect(() => {
+    if (highlightedId && cardRefs.current[highlightedId]) {
+      cardRefs.current[highlightedId]?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [highlightedId]);
+
   const activeFilterCount = countActiveFilters(filters, selectedAmenities);
+  const mappableCount = mapListings.filter((l) => l.lat != null && l.lng != null).length;
+
+  const listingGrid = (
+    <>
+      {listings.map((listing) => (
+        <div
+          key={listing.id}
+          ref={(el) => {
+            cardRefs.current[listing.id] = el;
+          }}
+        >
+          <ListingCard
+            listing={listing}
+            isFavorite={favoriteIds.has(listing.id)}
+            isHighlighted={highlightedId === listing.id}
+            onHover={setHighlightedId}
+            onFavoriteToggle={() =>
+              api.getFavorites().then((favs) => setFavoriteIds(new Set(favs.map((f) => f.id))))
+            }
+          />
+        </div>
+      ))}
+    </>
+  );
 
   return (
     <main className="min-h-screen bg-background">
@@ -111,7 +176,7 @@ export default function HomePage() {
       </div>
 
       <div className="mx-auto max-w-[1760px] px-4 py-6 sm:px-6 md:px-10 md:py-8">
-        <div className="mb-6 flex items-center justify-between gap-4">
+        <div className="mb-6 flex items-center gap-3">
           <button
             type="button"
             onClick={() => setFiltersOpen(true)}
@@ -125,6 +190,26 @@ export default function HomePage() {
             Filters
             {activeFilterCount > 0 && (
               <span className="rounded-full bg-background/20 px-1.5 text-xs">{activeFilterCount}</span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              if (window.innerWidth < 1024) setMapOpen(true);
+              else setShowMap((v) => !v);
+            }}
+            disabled={listings.length === 0}
+            className={`shadow-card inline-flex items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-medium transition hover:shadow-elevated disabled:opacity-40 ${
+              showMap || mapOpen
+                ? "border-foreground bg-foreground text-background"
+                : "border-border bg-card hover:bg-muted/50"
+            }`}
+          >
+            <Map className="h-4 w-4" />
+            Map
+            {mappableCount > 0 && (
+              <span className="rounded-full bg-background/20 px-1.5 text-xs">{mappableCount}</span>
             )}
           </button>
         </div>
@@ -154,19 +239,37 @@ export default function HomePage() {
           </div>
         ) : listings.length === 0 ? (
           <p className="py-24 text-center text-muted-foreground">No listings found. Try adjusting filters.</p>
+        ) : showMap ? (
+          <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+            <div className="max-h-[calc(100vh-12rem)] overflow-y-auto pr-1">
+              <div className="grid grid-cols-1 gap-x-5 gap-y-8 sm:grid-cols-2 md:gap-x-6">
+                {listingGrid}
+              </div>
+              <div ref={sentinelRef} className="h-10" />
+              {loadingMore && (
+                <div className="flex justify-center py-8">
+                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                </div>
+              )}
+              {!hasMore && listings.length > 0 && (
+                <p className="py-8 text-center text-sm text-muted-foreground">
+                  Showing all {listings.length} stays
+                </p>
+              )}
+            </div>
+            <div className="sticky top-24 hidden h-[calc(100vh-8rem)] overflow-hidden rounded-2xl border border-border shadow-card lg:block">
+              <SearchResultsMap
+                listings={mapListings.length > 0 ? mapListings : listings}
+                selectedId={highlightedId}
+                onSelect={setHighlightedId}
+                className="h-full w-full"
+              />
+            </div>
+          </div>
         ) : (
           <>
             <div className="grid grid-cols-1 gap-x-5 gap-y-8 sm:grid-cols-2 md:gap-x-6 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-              {listings.map((listing) => (
-                <ListingCard
-                  key={listing.id}
-                  listing={listing}
-                  isFavorite={favoriteIds.has(listing.id)}
-                  onFavoriteToggle={() =>
-                    api.getFavorites().then((favs) => setFavoriteIds(new Set(favs.map((f) => f.id))))
-                  }
-                />
-              ))}
+              {listingGrid}
             </div>
             <div ref={sentinelRef} className="h-10" />
             {loadingMore && (
@@ -192,6 +295,14 @@ export default function HomePage() {
             setSelectedAmenities(amenities);
             resetAndFetch(nextFilters, amenities);
           }}
+        />
+
+        <MapModal
+          open={mapOpen}
+          listings={mapListings.length > 0 ? mapListings : listings}
+          selectedId={highlightedId}
+          onSelect={setHighlightedId}
+          onClose={() => setMapOpen(false)}
         />
       </div>
     </main>

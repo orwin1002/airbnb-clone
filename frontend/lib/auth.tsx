@@ -9,9 +9,10 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (data: { name: string; email: string; password: string; is_host: boolean }) => Promise<void>;
-  demoLogin: (email: string) => Promise<void>;
+  demoLogin: (email: string) => Promise<User>;
   logout: () => void;
   refreshSession: () => Promise<void>;
+  updateUser: (user: User) => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -84,6 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const u = await api.demoLogin(email);
     persistUser(u);
     setUser(u);
+    return u;
   };
 
   const logout = () => {
@@ -91,8 +93,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  const updateUser = (u: User) => {
+    persistUser(u);
+    setUser(u);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, demoLogin, logout, refreshSession }}>
+    <AuthContext.Provider
+      value={{ user, loading, login, register, demoLogin, logout, refreshSession, updateUser }}
+    >
       {children}
     </AuthContext.Provider>
   );

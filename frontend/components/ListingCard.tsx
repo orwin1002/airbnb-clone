@@ -6,18 +6,28 @@ import { useState } from "react";
 import type { ListingCard as ListingCardType } from "@/lib/types";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
+import { useNotifications } from "@/lib/notifications";
 import { useToast } from "@/lib/toast";
 import SafeImage from "@/components/SafeImage";
 
 interface Props {
   listing: ListingCardType;
   isFavorite?: boolean;
+  isHighlighted?: boolean;
+  onHover?: (id: number | null) => void;
   onFavoriteToggle?: () => void;
 }
 
-export default function ListingCard({ listing, isFavorite = false, onFavoriteToggle }: Props) {
+export default function ListingCard({
+  listing,
+  isFavorite = false,
+  isHighlighted = false,
+  onHover,
+  onFavoriteToggle,
+}: Props) {
   const { user } = useAuth();
   const { showToast } = useToast();
+  const { addNotification } = useNotifications();
   const [fav, setFav] = useState(isFavorite);
 
   const toggleFavorite = async (e: React.MouseEvent) => {
@@ -36,6 +46,7 @@ export default function ListingCard({ listing, isFavorite = false, onFavoriteTog
         await api.addFavorite(listing.id);
         setFav(true);
         showToast("Saved to wishlist", "success");
+        addNotification("Added to wishlist", listing.title, "wishlist", { toast: false });
       }
       onFavoriteToggle?.();
     } catch {
@@ -44,7 +55,12 @@ export default function ListingCard({ listing, isFavorite = false, onFavoriteTog
   };
 
   return (
-    <Link href={`/listing/${listing.id}`} className="group block">
+    <Link
+      href={`/listing/${listing.id}`}
+      className={`group block rounded-xl transition ${isHighlighted ? "ring-2 ring-foreground ring-offset-2 ring-offset-background" : ""}`}
+      onMouseEnter={() => onHover?.(listing.id)}
+      onMouseLeave={() => onHover?.(null)}
+    >
       <div className="card-hover relative aspect-[20/19] overflow-hidden rounded-xl bg-muted shadow-card">
         <SafeImage
           src={listing.photo_url}

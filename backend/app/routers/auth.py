@@ -67,3 +67,14 @@ def demo_login(payload: DemoLoginRequest, db: Session = Depends(get_db)):
 @router.get("/me", response_model=UserOut)
 def me(current_user: User = Depends(get_current_user)):
     return current_user
+
+
+@router.post("/verify-identity", response_model=UserOut)
+def verify_identity(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Mock identity verification — marks the user as verified after a simulated review."""
+    if current_user.identity_verified:
+        return current_user
+    current_user.identity_verified = True
+    db.commit()
+    db.refresh(current_user)
+    return current_user

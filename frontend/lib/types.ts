@@ -4,6 +4,7 @@ export interface User {
   email: string;
   role: string;
   is_host: boolean;
+  identity_verified: boolean;
   created_at: string;
 }
 
@@ -12,6 +13,8 @@ export interface ListingCard {
   title: string;
   location_city: string;
   location_area: string;
+  lat?: number | null;
+  lng?: number | null;
   price_per_night: number;
   property_type: string;
   vibe: string;
@@ -144,4 +147,5 @@ export interface SearchFilters {
   vibe?: string;
   amenities?: string;
   page?: number;
+  page_size?: number;
 }

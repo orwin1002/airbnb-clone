@@ -26,6 +26,10 @@ def migrate_schema() -> None:
         if "password_hash" not in cols:
             with engine.begin() as conn:
                 conn.execute(text("ALTER TABLE users ADD COLUMN password_hash VARCHAR(255)"))
+        if "identity_verified" not in cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE users ADD COLUMN identity_verified BOOLEAN DEFAULT 0"))
+                conn.execute(text("UPDATE users SET identity_verified = 0 WHERE identity_verified IS NULL"))
 
 
 def get_db():

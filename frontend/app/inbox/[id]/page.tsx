@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Send } from "lucide-react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
 import type { Conversation, Message } from "@/lib/types";
@@ -11,8 +11,10 @@ import { useToast } from "@/lib/toast";
 
 export default function ConversationPage() {
   const params = useParams();
+  const router = useRouter();
   const id = Number(params.id);
   const { user } = useAuth();
+  const prevUserIdRef = useRef<number | null>(null);
   const { showToast } = useToast();
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -22,11 +24,14 @@ export default function ConversationPage() {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const load = async () => {
+    const uid = user?.id;
+    if (!uid) return;
     try {
       const [convs, msgs] = await Promise.all([
         api.getConversations(),
         api.getMessages(id),
       ]);
+      if (user?.id !== uid) return;
       setConversation(convs.find((c) => c.id === id) ?? null);
       setMessages(msgs);
     } catch {
@@ -37,7 +42,14 @@ export default function ConversationPage() {
   };
 
   useEffect(() => {
-    if (user && id) load();
+    if (!user || !id) return;
+
+    if (prevUserIdRef.current !== null && prevUserIdRef.current !== user.id) {
+      router.replace("/inbox");
+      return;
+    }
+    prevUserIdRef.current = user.id;
+    load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, id]);
 

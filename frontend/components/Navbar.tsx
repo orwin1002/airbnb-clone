@@ -1,24 +1,28 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
-  Heart,
-  Home,
   Menu,
   Moon,
   Sun,
+  ShieldCheck,
   User,
   X,
-  Luggage,
   Building2,
+  Home,
+  Heart,
+  Luggage,
   MessageSquare,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useAuth, DEMO_GUESTS, DEMO_HOSTS } from "@/lib/auth";
 import { useToast } from "@/lib/toast";
+import { useIdentityVerification } from "@/lib/identityVerification";
+import { useNotifications } from "@/lib/notifications";
 import AuthModal from "@/components/AuthModal";
+import NotificationBell from "@/components/NotificationBell";
 
 function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
@@ -36,7 +40,10 @@ function ThemeToggle() {
 export default function Navbar() {
   const { user, demoLogin, logout, loading } = useAuth();
   const { showToast } = useToast();
+  const { openVerification } = useIdentityVerification();
+  const { addNotification } = useNotifications();
   const pathname = usePathname();
+  const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
@@ -44,8 +51,15 @@ export default function Navbar() {
 
   const handleDemoLogin = async (email: string) => {
     try {
-      await demoLogin(email);
+      const u = await demoLogin(email);
       showToast("Welcome back!", "success");
+      addNotification("Signed in", `You're logged in as ${email}`, "system", {
+        toast: false,
+        userId: u.id,
+      });
+      if (/^\/inbox\/\d+/.test(pathname)) {
+        router.replace("/inbox");
+      }
       setMenuOpen(false);
       setProfileOpen(false);
     } catch {
@@ -63,7 +77,6 @@ export default function Navbar() {
   const navLink = (href: string, label: string, icon: React.ReactNode) => (
     <Link
       href={href}
-      onClick={() => setMenuOpen(false)}
       className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition hover:bg-muted ${
         pathname === href ? "text-primary" : "text-foreground"
       }`}
@@ -83,7 +96,8 @@ export default function Navbar() {
             </svg>
           </Link>
 
-          <nav className="hidden items-center gap-1 md:flex">
+          {/* Desktop nav */}
+          <nav className="hidden items-center gap-1 lg:flex">
             {navLink("/", "Explore", <Home className="h-4 w-4" />)}
             {navLink("/favorites", "Wishlists", <Heart className="h-4 w-4" />)}
             {navLink("/trips", "Trips", <Luggage className="h-4 w-4" />)}
@@ -91,10 +105,12 @@ export default function Navbar() {
             {user?.is_host && navLink("/host", "Hosting", <Building2 className="h-4 w-4" />)}
           </nav>
 
-          <div className="flex items-center gap-2">
+          {/* Mobile: theme + notif + menu | Desktop: theme + notif + profile + menu */}
+          <div className="flex items-center gap-1 sm:gap-2">
             <ThemeToggle />
+            {user && <NotificationBell />}
 
-            <div className="relative hidden sm:block">
+            <div className="relative hidden lg:block">
               <button
                 onClick={() => setProfileOpen(!profileOpen)}
                 className="flex items-center rounded-full border border-border p-1.5 shadow-sm transition hover:shadow-md"
@@ -113,6 +129,23 @@ export default function Navbar() {
                       <p className="font-semibold">{user.name}</p>
                       <p className="text-sm text-muted-foreground">{user.email}</p>
                       <p className="text-xs text-muted-foreground">{user.is_host ? "Host & Guest" : "Guest"}</p>
+                      {user.identity_verified ? (
+                        <p className="flex items-center gap-1.5 text-xs font-medium text-green-700 dark:text-green-400">
+                          <ShieldCheck className="h-3.5 w-3.5" />
+                          Identity verified
+                        </p>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            openVerification();
+                            setProfileOpen(false);
+                          }}
+                          className="flex w-full items-center justify-center gap-2 rounded-lg border border-border py-2 text-sm font-medium hover:bg-muted"
+                        >
+                          <ShieldCheck className="h-4 w-4" />
+                          Verify identity
+                        </button>
+                      )}
                       <button
                         onClick={() => { logout(); setProfileOpen(false); showToast("Logged out", "info"); }}
                         className="w-full rounded-lg bg-muted py-2 text-sm font-medium hover:bg-muted/80"
@@ -141,17 +174,9 @@ export default function Navbar() {
         </div>
 
         {menuOpen && (
-          <div className="border-t border-border px-4 py-3">
-            <div className="space-y-1 md:hidden">
-              {navLink("/", "Explore", <Home className="h-4 w-4" />)}
-              {navLink("/favorites", "Wishlists", <Heart className="h-4 w-4" />)}
-              {navLink("/trips", "Trips", <Luggage className="h-4 w-4" />)}
-              {user && navLink("/inbox", "Inbox", <MessageSquare className="h-4 w-4" />)}
-              {user?.is_host && navLink("/host", "Hosting", <Building2 className="h-4 w-4" />)}
-            </div>
-
+          <div className="border-t border-border px-4 py-3 lg:max-w-md lg:ml-auto">
             {!user && (
-              <div className="mt-3 flex gap-2 sm:hidden">
+              <div className="mb-4 flex gap-2 lg:hidden">
                 <button onClick={() => openAuth("login")} className="flex-1 rounded-xl bg-foreground py-2.5 text-sm font-semibold text-background">
                   Log in
                 </button>
@@ -161,7 +186,7 @@ export default function Navbar() {
               </div>
             )}
 
-            <div className="mt-4 border-t border-border pt-4">
+            <div>
               <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Guest accounts</p>
               <div className="space-y-1">
                 {DEMO_GUESTS.map((u) => (
@@ -189,12 +214,36 @@ export default function Navbar() {
             </div>
 
             {user && (
-              <button
-                onClick={() => { logout(); setMenuOpen(false); showToast("Logged out", "info"); }}
-                className="mt-4 w-full rounded-lg bg-muted py-2 text-sm font-medium"
-              >
-                Log out ({user.name})
-              </button>
+              <div className="mt-4 space-y-2 border-t border-border pt-4 lg:hidden">
+                {user.is_host && (
+                  <Link
+                    href="/host"
+                    onClick={() => setMenuOpen(false)}
+                    className="flex w-full items-center gap-2 rounded-lg border border-border px-3 py-2.5 text-sm font-medium hover:bg-muted"
+                  >
+                    <Building2 className="h-4 w-4" />
+                    Host dashboard
+                  </Link>
+                )}
+                {!user.identity_verified && (
+                  <button
+                    onClick={() => {
+                      openVerification();
+                      setMenuOpen(false);
+                    }}
+                    className="flex w-full items-center justify-center gap-2 rounded-lg border border-border py-2 text-sm font-medium"
+                  >
+                    <ShieldCheck className="h-4 w-4" />
+                    Verify identity
+                  </button>
+                )}
+                <button
+                  onClick={() => { logout(); setMenuOpen(false); showToast("Logged out", "info"); }}
+                  className="w-full rounded-lg bg-muted py-2 text-sm font-medium"
+                >
+                  Log out ({user.name})
+                </button>
+              </div>
             )}
           </div>
         )}
