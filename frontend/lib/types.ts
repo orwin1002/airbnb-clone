@@ -78,6 +78,30 @@ export interface Review {
   comment: string;
   guest_name: string;
   created_at: string;
+  like_count: number;
+  liked_by_me: boolean;
+  host_reply?: string | null;
+  host_reply_at?: string | null;
+}
+
+export interface HostReview extends Review {
+  listing_id: number;
+  listing_title: string;
+}
+
+export interface ReviewWatch {
+  id: number;
+  listing_id: number;
+  listing_title: string;
+  guest_id: number;
+  guest_name: string;
+  host_id: number;
+  rating: number;
+  comment: string;
+  like_count: number;
+  host_reply?: string | null;
+  host_reply_at?: string | null;
+  created_at: string;
 }
 
 export interface AvailabilityRange {

@@ -1,16 +1,31 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import SafeImage from "@/components/SafeImage";
-import { CalendarDays, Home, MessageSquare, Plus, Trash2 } from "lucide-react";
+import { CalendarDays, Home, MessageSquare, Plus, Star, Trash2 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
-import type { Booking, ListingCard } from "@/lib/types";
+import { formatMessageTimestamp } from "@/lib/dates";
+import type { Booking, HostReview, ListingCard } from "@/lib/types";
 import { useToast } from "@/lib/toast";
+import ReviewEngagement from "@/components/ReviewEngagement";
 
-type HostTab = "listings" | "bookings";
+type HostTab = "listings" | "bookings" | "reviews";
+
+function ReviewStars({ rating }: { rating: number }) {
+  return (
+    <div className="flex gap-0.5">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <Star
+          key={i}
+          className={`h-3.5 w-3.5 ${i < rating ? "fill-foreground" : "fill-muted text-muted"}`}
+        />
+      ))}
+    </div>
+  );
+}
 
 export default function HostDashboard() {
   const { user } = useAuth();
@@ -19,6 +34,7 @@ export default function HostDashboard() {
   const [tab, setTab] = useState<HostTab>("listings");
   const [listings, setListings] = useState<ListingCard[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [reviews, setReviews] = useState<HostReview[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<ListingCard | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -26,10 +42,11 @@ export default function HostDashboard() {
 
   const load = () => {
     setLoading(true);
-    Promise.all([api.getHostListings(), api.getHostBookings()])
-      .then(([l, b]) => {
+    Promise.all([api.getHostListings(), api.getHostBookings(), api.getHostReviews()])
+      .then(([l, b, r]) => {
         setListings(l);
         setBookings(b);
+        setReviews(r);
       })
       .catch(() => showToast("Failed to load dashboard", "error"))
       .finally(() => setLoading(false));
@@ -40,6 +57,21 @@ export default function HostDashboard() {
     else setLoading(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
+
+  useEffect(() => {
+    if (!user?.is_host || tab !== "reviews") return;
+    const poll = () => {
+      api.getHostReviews().then(setReviews).catch(() => {});
+    };
+    poll();
+    const interval = setInterval(poll, 4000);
+    const onFocus = () => poll();
+    window.addEventListener("focus", onFocus);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [user, tab]);
 
   const confirmDelete = async () => {
     if (!deleteTarget) return;
@@ -110,10 +142,11 @@ export default function HostDashboard() {
         )}
       </div>
 
-      <div className="mb-8 grid grid-cols-2 gap-2 sm:max-w-md">
+      <div className="mb-8 grid grid-cols-3 gap-2">
         <button type="button" className={tabClass(tab === "listings")} onClick={() => setTab("listings")}>
-          <Home className="h-4 w-4" />
-          Your listings
+          <Home className="h-4 w-4 shrink-0" />
+          <span className="hidden sm:inline">Your listings</span>
+          <span className="sm:hidden">Listings</span>
           {!loading && (
             <span className={`rounded-full px-2 py-0.5 text-xs ${tab === "listings" ? "bg-background/20" : "bg-muted"}`}>
               {listings.length}
@@ -121,11 +154,20 @@ export default function HostDashboard() {
           )}
         </button>
         <button type="button" className={tabClass(tab === "bookings")} onClick={() => setTab("bookings")}>
-          <CalendarDays className="h-4 w-4" />
+          <CalendarDays className="h-4 w-4 shrink-0" />
           Bookings
           {!loading && (
             <span className={`rounded-full px-2 py-0.5 text-xs ${tab === "bookings" ? "bg-background/20" : "bg-muted"}`}>
               {bookings.length}
+            </span>
+          )}
+        </button>
+        <button type="button" className={tabClass(tab === "reviews")} onClick={() => setTab("reviews")}>
+          <Star className="h-4 w-4 shrink-0" />
+          Reviews
+          {!loading && (
+            <span className={`rounded-full px-2 py-0.5 text-xs ${tab === "reviews" ? "bg-background/20" : "bg-muted"}`}>
+              {reviews.length}
             </span>
           )}
         </button>
@@ -182,7 +224,8 @@ export default function HostDashboard() {
             ))}
           </div>
         )
-      ) : bookings.length === 0 ? (
+      ) : tab === "bookings" ? (
+        bookings.length === 0 ? (
         <div className="rounded-2xl border border-border bg-card p-12 text-center shadow-card">
           <CalendarDays className="mx-auto h-10 w-10 text-muted-foreground" />
           <p className="mt-4 text-muted-foreground">No bookings on your listings yet.</p>
@@ -213,6 +256,43 @@ export default function HostDashboard() {
                 </button>
               </div>
             </div>
+          ))}
+        </div>
+      )
+      ) : reviews.length === 0 ? (
+        <div className="rounded-2xl border border-border bg-card p-12 text-center shadow-card">
+          <Star className="mx-auto h-10 w-10 text-muted-foreground" />
+          <p className="mt-4 text-muted-foreground">No reviews on your listings yet.</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {reviews.map((r) => (
+            <article key={r.id} className="rounded-2xl border border-border bg-card p-5 shadow-card">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <Link
+                    href={`/listing/${r.listing_id}`}
+                    className="font-semibold text-primary hover:underline"
+                  >
+                    {r.listing_title}
+                  </Link>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {r.guest_name} · {formatMessageTimestamp(r.created_at)}
+                  </p>
+                </div>
+                <ReviewStars rating={r.rating} />
+              </div>
+              <p className="mt-3 text-sm leading-relaxed text-foreground/90">{r.comment}</p>
+              <ReviewEngagement
+                review={r}
+                canReply
+                onUpdate={(updated) =>
+                  setReviews((prev) =>
+                    prev.map((item) => (item.id === updated.id ? (updated as HostReview) : item)),
+                  )
+                }
+              />
+            </article>
           ))}
         </div>
       )}

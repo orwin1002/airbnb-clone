@@ -1,14 +1,24 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Bell } from "lucide-react";
 import { formatRelativeTimestamp } from "@/lib/dates";
 import { useNotifications } from "@/lib/notifications";
 
 export default function NotificationBell() {
+  const router = useRouter();
   const { notifications, unreadCount, markRead, markAllRead, clearAll } = useNotifications();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+
+  const handleNotificationClick = (id: string, href?: string) => {
+    markRead(id);
+    if (href) {
+      setOpen(false);
+      router.push(href);
+    }
+  };
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -59,10 +69,10 @@ export default function NotificationBell() {
                 <button
                   key={n.id}
                   type="button"
-                  onClick={() => markRead(n.id)}
+                  onClick={() => handleNotificationClick(n.id, n.href)}
                   className={`w-full border-b border-border px-4 py-3 text-left transition hover:bg-muted/50 ${
                     !n.read ? "bg-primary/5" : ""
-                  }`}
+                  } ${n.href ? "cursor-pointer" : ""}`}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <p className="text-sm font-medium">{n.title}</p>

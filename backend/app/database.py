@@ -30,6 +30,13 @@ def migrate_schema() -> None:
             with engine.begin() as conn:
                 conn.execute(text("ALTER TABLE users ADD COLUMN identity_verified BOOLEAN DEFAULT 0"))
                 conn.execute(text("UPDATE users SET identity_verified = 0 WHERE identity_verified IS NULL"))
+    if "reviews" in inspector.get_table_names():
+        cols = {c["name"] for c in inspector.get_columns("reviews")}
+        with engine.begin() as conn:
+            if "host_reply" not in cols:
+                conn.execute(text("ALTER TABLE reviews ADD COLUMN host_reply TEXT"))
+            if "host_reply_at" not in cols:
+                conn.execute(text("ALTER TABLE reviews ADD COLUMN host_reply_at DATETIME"))
 
 
 def get_db():

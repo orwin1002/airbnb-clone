@@ -38,6 +38,7 @@ export default function ListingDetailClient({ id }: Props) {
   const [children, setChildren] = useState(0);
   const [infants, setInfants] = useState(0);
   const [bookingOpen, setBookingOpen] = useState(false);
+  const [highlightReviewId, setHighlightReviewId] = useState<number | null>(null);
 
   const guests = adults + children;
 
@@ -54,6 +55,30 @@ export default function ListingDetailClient({ id }: Props) {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  useEffect(() => {
+    const parseHash = () => {
+      const match = window.location.hash.match(/^#review-(\d+)$/);
+      setHighlightReviewId(match ? Number(match[1]) : null);
+    };
+    parseHash();
+    window.addEventListener("hashchange", parseHash);
+    return () => window.removeEventListener("hashchange", parseHash);
+  }, [id]);
+
+  useEffect(() => {
+    const poll = () => {
+      api.getReviews(id).then(setReviews).catch(() => {});
+    };
+    poll();
+    const interval = setInterval(poll, 4000);
+    const onFocus = () => poll();
+    window.addEventListener("focus", onFocus);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", onFocus);
+    };
   }, [id]);
 
   useEffect(() => {
@@ -193,6 +218,10 @@ export default function ListingDetailClient({ id }: Props) {
               reviews={reviews}
               avgRating={listing.avg_rating}
               reviewCount={listing.review_count}
+              highlightReviewId={highlightReviewId}
+              onReviewUpdate={(updated) =>
+                setReviews((prev) => prev.map((r) => (r.id === updated.id ? updated : r)))
+              }
             />
           </div>
 

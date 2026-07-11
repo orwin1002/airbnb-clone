@@ -6,8 +6,9 @@ from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, get_optional_user
 from app.models import Amenity, Booking, Conversation, Favorite, Listing, ListingAmenity, ListingPhoto, Message, Review, User
+from app.review_utils import review_out
 from app.schemas import (
     AvailabilityRange,
     ListingCardOut,
@@ -293,7 +294,11 @@ def get_availability(listing_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/{listing_id}/reviews", response_model=list[ReviewOut])
-def get_reviews(listing_id: int, db: Session = Depends(get_db)):
+def get_reviews(
+    listing_id: int,
+    db: Session = Depends(get_db),
+    current_user: User | None = Depends(get_optional_user),
+):
     rows = (
         db.query(Review, User.name)
         .join(User, User.id == Review.guest_id)
@@ -301,4 +306,5 @@ def get_reviews(listing_id: int, db: Session = Depends(get_db)):
         .order_by(Review.created_at.desc())
         .all()
     )
-    return [ReviewOut(id=r.id, rating=r.rating, comment=r.comment, guest_name=name, created_at=r.created_at) for r, name in rows]
+    user_id = current_user.id if current_user else None
+    return [review_out(r, name, db, user_id) for r, name in rows]

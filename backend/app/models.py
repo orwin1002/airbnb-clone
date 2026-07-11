@@ -39,6 +39,7 @@ class User(Base):
     host_conversations = relationship(
         "Conversation", back_populates="host", foreign_keys="Conversation.host_id"
     )
+    review_likes = relationship("ReviewLike", back_populates="user")
 
 
 class Listing(Base):
@@ -163,11 +164,25 @@ class Review(Base):
     booking_id = Column(Integer, ForeignKey("bookings.id"), nullable=False)
     rating = Column(Integer, nullable=False)
     comment = Column(Text, nullable=False)
+    host_reply = Column(Text, nullable=True)
+    host_reply_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     listing = relationship("Listing", back_populates="reviews")
     guest = relationship("User", back_populates="reviews")
     booking = relationship("Booking", back_populates="review")
+    likes = relationship("ReviewLike", back_populates="review", cascade="all, delete-orphan")
+
+
+class ReviewLike(Base):
+    __tablename__ = "review_likes"
+
+    review_id = Column(Integer, ForeignKey("reviews.id"), primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    review = relationship("Review", back_populates="likes")
+    user = relationship("User", back_populates="review_likes")
 
 
 class Favorite(Base):

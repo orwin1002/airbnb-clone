@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useState, ReactNode 
 import { toast } from "sonner";
 import { useAuth } from "./auth";
 
-export type NotificationType = "booking" | "message" | "system" | "verification" | "wishlist";
+export type NotificationType = "booking" | "message" | "system" | "verification" | "wishlist" | "review";
 
 export interface AppNotification {
   id: string;
@@ -18,6 +18,8 @@ export interface AppNotification {
   eventAt?: string;
   /** Prevents duplicate entries for the same underlying event. */
   dedupeKey?: string;
+  /** In-app link when the notification is clicked. */
+  href?: string;
 }
 
 interface NotificationContextType {
@@ -27,7 +29,7 @@ interface NotificationContextType {
     title: string,
     body: string,
     type?: NotificationType,
-    options?: { toast?: boolean; userId?: number; eventAt?: string; dedupeKey?: string; read?: boolean }
+    options?: { toast?: boolean; userId?: number; eventAt?: string; dedupeKey?: string; read?: boolean; href?: string }
   ) => void;
   markRead: (id: string) => void;
   markReadByDedupePrefix: (prefix: string) => void;
@@ -99,7 +101,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       title: string,
       body: string,
       type: NotificationType = "system",
-      options?: { toast?: boolean; userId?: number; eventAt?: string; dedupeKey?: string; read?: boolean }
+      options?: { toast?: boolean; userId?: number; eventAt?: string; dedupeKey?: string; read?: boolean; href?: string }
     ) => {
       const uid = options?.userId ?? getActiveUserId();
       if (uid == null) return;
@@ -110,7 +112,17 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       }
 
       if (options?.toast !== false) {
-        toast(title, { description: body });
+        toast(title, {
+          description: body,
+          action: options?.href
+            ? {
+                label: "View",
+                onClick: () => {
+                  window.location.href = options.href!;
+                },
+              }
+            : undefined,
+        });
       }
 
       const now = new Date().toISOString();
@@ -124,6 +136,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         createdAt: now,
         eventAt: options?.eventAt ?? now,
         dedupeKey: options?.dedupeKey,
+        href: options?.href,
       };
       updateForUser(uid, (prev) => [item, ...prev.filter((n) => n.userId === uid)].slice(0, 50));
     },

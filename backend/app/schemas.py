@@ -87,6 +87,34 @@ class ReviewOut(BaseModel):
     comment: str
     guest_name: str
     created_at: datetime
+    like_count: int = 0
+    liked_by_me: bool = False
+    host_reply: Optional[str] = None
+    host_reply_at: Optional[datetime] = None
+
+
+class HostReviewOut(ReviewOut):
+    listing_id: int
+    listing_title: str
+
+
+class ReviewWatchOut(BaseModel):
+    id: int
+    listing_id: int
+    listing_title: str
+    guest_id: int
+    guest_name: str
+    host_id: int
+    rating: int
+    comment: str
+    like_count: int = 0
+    host_reply: Optional[str] = None
+    host_reply_at: Optional[datetime] = None
+    created_at: datetime
+
+
+class ReviewReplyCreate(BaseModel):
+    body: str = Field(min_length=1, max_length=2000)
 
 
 class ListingDetailOut(BaseModel):

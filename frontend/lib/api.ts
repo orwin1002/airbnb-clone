@@ -30,7 +30,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   };
   if (userId) headers["X-User-Id"] = String(userId);
 
-  const res = await fetch(`${API_URL}${path}`, { ...options, headers });
+  const res = await fetch(`${API_URL}${path}`, { ...options, headers, cache: "no-store" });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }));
     const detail = err.detail;
@@ -121,6 +121,8 @@ export const api = {
 
   getHostBookings: () => request<Booking[]>("/hosts/me/bookings"),
 
+  getHostReviews: () => request<import("./types").HostReview[]>("/hosts/me/reviews"),
+
   cancelBooking: (bookingId: number) =>
     request<Booking>(`/bookings/${bookingId}/cancel`, { method: "PATCH" }),
 
@@ -165,4 +167,15 @@ export const api = {
     comment: string;
   }) =>
     request<Review>("/reviews", { method: "POST", body: JSON.stringify(data) }),
+
+  toggleReviewLike: (reviewId: number) =>
+    request<Review>(`/reviews/${reviewId}/like`, { method: "POST" }),
+
+  replyToReview: (reviewId: number, body: string) =>
+    request<import("./types").HostReview>(`/reviews/${reviewId}/reply`, {
+      method: "POST",
+      body: JSON.stringify({ body }),
+    }),
+
+  getTrackedReviews: () => request<import("./types").ReviewWatch[]>("/reviews/me/tracked"),
 };

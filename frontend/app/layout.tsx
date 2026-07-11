@@ -7,6 +7,7 @@ import MobileBottomNav from "@/components/MobileBottomNav";
 import PageShell from "@/components/PageShell";
 import IdentityVerificationModal from "@/components/IdentityVerificationModal";
 import MessageNotificationListener from "@/components/MessageNotificationListener";
+import ReviewNotificationListener from "@/components/ReviewNotificationListener";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider } from "@/lib/auth";
 import { NotificationProvider } from "@/lib/notifications";
@@ -39,6 +40,7 @@ export default function RootLayout({
                 <MobileBottomNav />
                 <IdentityVerificationModal />
                 <MessageNotificationListener />
+                <ReviewNotificationListener />
                 <Toaster position="bottom-right" richColors closeButton />
               </IdentityVerificationProvider>
             </NotificationProvider>
