@@ -64,7 +64,7 @@ flowchart LR
 ```
 airbnb-clone/
 ├── frontend/                 # Next.js application
-│   ├── app/                  # App Router pages (/, /listing, /trips, /host, /inbox, …)
+│   ├── app/                  # App Router pages (/, /listing, /trips, /host, /inbox, /profile, …)
 │   ├── components/           # UI (Navbar, MobileBottomNav, SearchResultsMap, …)
 │   ├── lib/                  # API client, auth, notifications, dates, types
 │   └── public/               # Static assets
@@ -146,7 +146,7 @@ Open **http://localhost:3000**
 
 Click the **menu icon** (top right) → choose a demo account under **Guest accounts** or **Host accounts**. No password is required for demo users.
 
-On **mobile**, use the bottom **Profile** tab or the hamburger menu for the same demo switcher. Host accounts also get a **Hosting** tab in the bottom nav.
+On **mobile**, use the bottom **Profile** tab (opens your profile page when logged in) or the hamburger menu for the demo account switcher. Host accounts also get a **Hosting** tab in the bottom nav.
 
 | Email | Role |
 |-------|------|
@@ -256,7 +256,7 @@ Interactive docs: **GET /docs**
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | POST | `/bookings` | Yes | Create booking |
-| GET | `/bookings/me` | Yes | Guest's trips |
+| GET | `/bookings/me` | Yes | Guest's trips (includes review id and host reply when applicable) |
 | GET | `/bookings/{id}/refund-preview` | Yes | Refund estimate before cancel |
 | PATCH | `/bookings/{id}/cancel` | Yes | Cancel booking |
 
@@ -276,6 +276,7 @@ Interactive docs: **GET /docs**
 | POST | `/reviews/{id}/like` | Yes | Toggle like on a review |
 | POST | `/reviews/{id}/reply` | Host | Reply to a review on your listing |
 | GET | `/reviews/me/tracked` | Yes | Reviews you wrote or received as host (for notification sync) |
+| GET | `/reviews/me/written` | Yes | Reviews you wrote as a guest (for profile page) |
 
 ### Favorites — `/favorites`
 
@@ -327,8 +328,14 @@ Interactive docs: **GET /docs**
 ### Reviews
 - Post-stay reviews linked to bookings (after checkout, from **Trips**)
 - **Like reviews** — any logged-in user; counts visible on listing pages
-- **Host replies** — shown on listing pages; live-updated via polling
+- **Host replies** — shown on listing pages, **Trips**, and **Profile**; live-updated via polling
 - Review notifications deep-link to the listing review (`/listing/{id}#review-{id}`)
+
+### Profile
+- **`/profile`** — Airbnb-style profile with sidebar: **About me**, **Past trips**, **Connections**
+- Profile card with avatar initial, name, and Guest/Host label
+- **Complete your profile** — opens mock identity verification
+- **Show reviews I've written** — expandable list with host responses and links to listing reviews
 
 ### Social & communication
 - Wishlists — save/remove favorites
@@ -346,7 +353,8 @@ Interactive docs: **GET /docs**
 - **Bottom tab bar** — Explore, Wishlists, Trips, Inbox, Profile (+ **Hosting** for host accounts)
 - Top bar — logo, dark mode, notifications, hamburger menu (demo account switcher)
 - Bottom nav hidden on listing detail pages (sticky booking bar instead)
-- Profile sheet — verify identity, host dashboard link, log out
+- **Profile tab** opens the full `/profile` page when logged in; login/signup sheet when logged out
+- Desktop avatar (top right) links to `/profile`
 
 ### Other
 - Dark mode — system / manual toggle via `next-themes`
