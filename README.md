@@ -1,6 +1,6 @@
 # Airbnb Clone
 
-A full-stack Airbnb-style vacation rental platform. Guests can search and book stays, save wishlists, message hosts, and leave reviews. Hosts can create and manage listings and view incoming bookings. The UI is photo-forward and responsive, with dark mode support.
+A full-stack Airbnb-style vacation rental platform. Guests can search and book stays, save wishlists, message hosts, and leave reviews. Hosts can create and manage listings and view incoming bookings. The UI is photo-forward, mobile-first, and supports dark mode, interactive maps, in-app notifications, and mock identity verification.
 
 **Live demo:** https://airbnb-clone-rho-ivory.vercel.app  
 **API docs:** https://airbnb-clone.onrender.com/docs  
@@ -20,6 +20,7 @@ A full-stack Airbnb-style vacation rental platform. Guests can search and book s
 | | `next-themes` | Dark / light mode |
 | | `react-day-picker` | Date range selection |
 | | `lucide-react` | Icons |
+| | `sonner` | Toast notifications |
 | | `react-leaflet` / Leaflet | Interactive listing map |
 | **Backend** | FastAPI | REST API |
 | | SQLAlchemy 2 | ORM |
@@ -68,8 +69,8 @@ flowchart LR
 airbnb-clone/
 ├── frontend/                 # Next.js application
 │   ├── app/                  # App Router pages (/, /listing, /trips, /host, /inbox, …)
-│   ├── components/           # UI components (SearchBar, ListingCard, Navbar, …)
-│   ├── lib/                  # API client, auth context, types
+│   ├── components/           # UI (Navbar, MobileBottomNav, SearchResultsMap, …)
+│   ├── lib/                  # API client, auth, notifications, dates, types
 │   └── public/               # Static assets
 ├── backend/
 │   ├── app/
@@ -151,6 +152,8 @@ Open **http://localhost:3000**
 
 Click the **menu icon** (top right) → choose a demo account under **Guest accounts** or **Host accounts**. No password is required for demo users.
 
+On **mobile**, use the bottom **Profile** tab or the hamburger menu for the same demo switcher. Host accounts also get a **Hosting** tab in the bottom nav.
+
 | Email | Role |
 |-------|------|
 | `alex@example.com` | Guest |
@@ -198,7 +201,7 @@ erDiagram
 
 | Table | Key columns | Notes |
 |-------|-------------|-------|
-| **users** | `id`, `name`, `email`, `password_hash`, `role`, `is_host` | Unique email; demo users have no password |
+| **users** | `id`, `name`, `email`, `password_hash`, `role`, `is_host`, `identity_verified` | Unique email; demo users have no password |
 | **listings** | `host_id`, `title`, `description`, `location_city`, `location_area`, `lat`, `lng`, `price_per_night`, `property_type`, `vibe`, `max_guests`, `bedrooms`, `beds`, `bathrooms` | 100 seeded listings (20 per host) |
 | **listing_photos** | `listing_id`, `url`, `sort_order` | External image URLs (Unsplash) |
 | **amenities** | `id`, `name` | e.g. WiFi, Pool, Kitchen |
@@ -233,6 +236,7 @@ Interactive docs: **GET /docs**
 | POST | `/auth/login` | No | Login with email + password |
 | POST | `/auth/demo-login` | No | One-click demo login (seeded emails only) |
 | GET | `/auth/me` | Yes | Current user profile |
+| POST | `/auth/verify-identity` | Yes | Mock identity verification (sets `identity_verified`) |
 
 ### Listings — `/listings`
 
@@ -298,15 +302,82 @@ Interactive docs: **GET /docs**
 
 ## Features
 
-- **Search** — Filter by keyword (title, city, area), dates, guests (adults/children/infants), price, property type, vibe, amenities
-- **Listing detail** — Photo gallery, amenities, host info, availability calendar, price breakdown, reviews, interactive map (Leaflet)
-- **Booking** — Overlap prevention, mocked checkout, trip management, cancellation with refund preview
-- **Host dashboard** — CRUD listings, view bookings on your properties
-- **Wishlists** — Save/remove favorites
-- **Messaging** — Guest–host inbox with read receipts
-- **Reviews** — Post-stay ratings linked to bookings
-- **Dark mode** — System / manual toggle via `next-themes`
-- **Responsive** — Mobile-friendly layout
+### Search & discovery
+- Filter by keyword (title, city, area, description, vibe, property type), dates, guests (adults/children/infants), price, property type, vibe, amenities
+- **Interactive map** on the homepage — price pins with photo popups; split list/map on desktop, full-screen map modal on mobile
+- Listings include `lat` / `lng` for map placement (Bangalore & Mumbai seed data)
+
+### Listings & booking
+- Photo gallery, amenities, host info, availability calendar, price breakdown, reviews
+- **Identity verification gate** — mock ID upload flow; booking and messaging require verification
+- **Date overlap prevention** — blocked nights prevent double-booking; Reserve disabled with clear error when dates conflict
+- Mock checkout, trip management, cancellation with refund preview
+- **Mobile sticky Reserve bar** on listing pages with guest picker (adults / children / infants)
+
+### Host tools
+- Host dashboard — CRUD listings, view bookings on your properties
+- **Hosting tab** in mobile bottom nav for host accounts
+
+### Social & communication
+- Wishlists — save/remove favorites
+- Guest–host **inbox** with read receipts and live polling
+- **Message notifications** — bell alerts when someone sends you a message (polls inbox every 4s)
+- Post-stay reviews linked to bookings
+
+### Notifications (client-side)
+- Navbar **notification bell** with unread count
+- Per-user storage in `localStorage` (`app_notifications_by_user`)
+- Types: booking, message, wishlist, verification, sign-in
+- Toast popups via `sonner` for new messages and events
+
+### Mobile UX
+- **Bottom tab bar** — Explore, Wishlists, Trips, Inbox, Profile (+ **Hosting** for host accounts)
+- Top bar — logo, dark mode, notifications, hamburger menu (demo account switcher)
+- Bottom nav hidden on listing detail pages (sticky booking bar instead)
+- Profile sheet — verify identity, host dashboard link, log out
+
+### Other
+- Dark mode — system / manual toggle via `next-themes`
+- Guest favourite badge — avg rating ≥ 4.7 with ≥ 3 reviews
+
+---
+
+## Deployment
+
+The project is set up for **Vercel** (frontend) + **Render** (backend). Pushing to `main` triggers automatic deploys on both platforms.
+
+| Service | URL | Dashboard |
+|---------|-----|-----------|
+| **Frontend** | https://airbnb-clone-rho-ivory.vercel.app | [vercel.com/dashboard](https://vercel.com/dashboard) |
+| **Backend** | https://airbnb-clone.onrender.com | [dashboard.render.com](https://dashboard.render.com) |
+
+### After pushing to GitHub
+
+1. **Vercel** — open your project → **Deployments** → wait until the latest build shows **Ready** (~1–3 min).
+2. **Render** — open your web service → **Events** / **Logs** → wait for deploy to finish (~3–5 min on free tier).
+3. Hard refresh the live site (`Ctrl+Shift+R`) or open in incognito to avoid cached assets.
+
+### Environment variables
+
+**Vercel** (frontend):
+
+| Variable | Value |
+|----------|-------|
+| `NEXT_PUBLIC_API_URL` | `https://airbnb-clone.onrender.com` |
+
+**Render** (backend):
+
+| Variable | Value |
+|----------|-------|
+| `CORS_ORIGINS` | Your Vercel URL(s), e.g. `https://airbnb-clone-rho-ivory.vercel.app` (wildcard `*.vercel.app` also supported) |
+
+### Local vs production
+
+| | Local | Production |
+|---|-------|------------|
+| Frontend | http://localhost:3000 | Vercel URL |
+| Backend | http://localhost:8000 | Render URL |
+| Database | `backend/airbnb.db` (local file) | Render ephemeral disk (re-seeded on deploy) |
 
 ---
 
@@ -314,14 +385,16 @@ Interactive docs: **GET /docs**
 
 1. **No real authentication** — Sessions are simulated via `X-User-Id`; suitable for demo/assignment use only.
 2. **No real payments** — Checkout is mocked; no Stripe or payment gateway integration.
-3. **Photos are URL-based** — Listing images are external Unsplash URLs; there is no file upload.
-4. **Map uses OpenStreetMap tiles** — Listing location is shown with Leaflet; no custom map API key is required.
-5. **Guest vs host roles** — Users have an `is_host` flag; demo accounts are either guest-only or host-only.
-6. **Pricing formula** — `total = nights × price_per_night + ₹500 cleaning fee + 12% service fee` (hardcoded).
-7. **SQLite for persistence** — Single-file database; not intended for high-concurrency production without migration to Postgres.
-8. **Infants excluded from capacity** — Search guest count uses adults + children only (infants do not count toward `max_guests`).
-9. **Messaging** — Only guests can initiate conversations; hosts reply in existing threads.
-10. **Seed data** — 5 guest accounts and 5 host accounts (20 listings each) are pre-loaded for demonstration.
+3. **No real identity verification** — ID upload is a mock UI; any file completes verification instantly.
+4. **Notifications are client-side** — Stored in `localStorage` per user; not pushed from a server. Message alerts use inbox polling.
+5. **Photos are URL-based** — Listing images are external Unsplash URLs; there is no file upload.
+6. **Map uses OpenStreetMap tiles** — Listing location is shown with Leaflet; no custom map API key is required.
+7. **Guest vs host roles** — Users have an `is_host` flag; demo accounts are either guest-only or host-only.
+8. **Pricing formula** — `total = nights × price_per_night + ₹500 cleaning fee + 12% service fee` (hardcoded).
+9. **SQLite for persistence** — Single-file database; not intended for high-concurrency production without migration to Postgres.
+10. **Infants excluded from capacity** — Search guest count uses adults + children only (infants do not count toward `max_guests`).
+11. **Messaging** — Only guests can initiate conversations; hosts reply in existing threads.
+12. **Seed data** — 5 guest accounts and 5 host accounts (20 listings each, Bangalore & Mumbai) are pre-loaded for demonstration.
 
 ---
 
