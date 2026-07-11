@@ -1,6 +1,6 @@
 # Airbnb Clone
 
-A full-stack Airbnb-style vacation rental platform. Guests can search and book stays, save wishlists, message hosts, and leave reviews. Hosts can create and manage listings and view incoming bookings. The UI is photo-forward, mobile-first, and supports dark mode, interactive maps, in-app notifications, and mock identity verification.
+A full-stack Airbnb-style vacation rental platform. Guests can search and book stays, save wishlists, message hosts, leave reviews, and like reviews. Hosts can create and manage listings, view bookings, reply to reviews, and get notified of new activity. The UI is photo-forward, mobile-first, and supports dark mode, interactive maps, in-app notifications, and mock identity verification.
 
 **Repo:** https://github.com/orwin1002/airbnb-clone
 
@@ -178,6 +178,7 @@ erDiagram
     users ||--o{ listings : hosts
     users ||--o{ bookings : "books as guest"
     users ||--o{ reviews : writes
+    users ||--o{ review_likes : likes
     users ||--o{ favorites : saves
     users ||--o{ messages : sends
     users ||--o{ conversations : "guest or host"
@@ -186,6 +187,7 @@ erDiagram
     amenities ||--o{ listing_amenities : tagged
     listings ||--o{ bookings : receives
     listings ||--o{ reviews : has
+    reviews ||--o{ review_likes : has
     listings ||--o{ conversations : about
     bookings ||--o| reviews : "one review per booking"
     conversations ||--o{ messages : contains
@@ -201,7 +203,8 @@ erDiagram
 | **amenities** | `id`, `name` | e.g. WiFi, Pool, Kitchen |
 | **listing_amenities** | `listing_id`, `amenity_id` | Many-to-many join |
 | **bookings** | `listing_id`, `guest_id`, `check_in`, `check_out`, `guests_count`, `total_price`, `refund_amount`, `status` | `status`: `confirmed` \| `cancelled` |
-| **reviews** | `listing_id`, `guest_id`, `booking_id`, `rating`, `comment` | One review per booking; rating 1–5 |
+| **reviews** | `listing_id`, `guest_id`, `booking_id`, `rating`, `comment`, `host_reply`, `host_reply_at` | One review per booking; rating 1–5; optional host reply |
+| **review_likes** | `review_id`, `user_id` | Composite primary key; any logged-in user can like a review |
 | **favorites** | `user_id`, `listing_id` | Composite primary key (wishlist) |
 | **conversations** | `guest_id`, `host_id`, `listing_id` | Unique per (guest, host, listing) |
 | **messages** | `conversation_id`, `sender_id`, `body`, `read_at` | Guest–host messaging |
@@ -242,7 +245,9 @@ Interactive docs: **GET /docs**
 | PUT | `/listings/{id}` | Host | Update listing |
 | DELETE | `/listings/{id}` | Host | Delete listing |
 | GET | `/listings/{id}/availability` | No | Booked date ranges |
-| GET | `/listings/{id}/reviews` | No | Reviews for a listing |
+| GET | `/listings/{id}/reviews` | No* | Reviews for a listing (includes like counts, host replies; `liked_by_me` when logged in) |
+
+\* Optional auth via `X-User-Id` for personalized fields.
 
 **Search:** The `city` query parameter searches across title, city, area, description, vibe, and property type.
 
@@ -261,12 +266,16 @@ Interactive docs: **GET /docs**
 |--------|----------|------|-------------|
 | GET | `/hosts/me/listings` | Host | Host's listings |
 | GET | `/hosts/me/bookings` | Host | Bookings on host's listings |
+| GET | `/hosts/me/reviews` | Host | Reviews on host's listings (with likes and replies) |
 
 ### Reviews — `/reviews`
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | POST | `/reviews` | Yes | Leave a review (requires completed stay) |
+| POST | `/reviews/{id}/like` | Yes | Toggle like on a review |
+| POST | `/reviews/{id}/reply` | Host | Reply to a review on your listing |
+| GET | `/reviews/me/tracked` | Yes | Reviews you wrote or received as host (for notification sync) |
 
 ### Favorites — `/favorites`
 
@@ -282,6 +291,7 @@ Interactive docs: **GET /docs**
 |--------|----------|------|-------------|
 | GET | `/messages/conversations` | Yes | List conversations |
 | POST | `/messages/conversations` | Yes | Start conversation (guest → host) |
+| POST | `/messages/conversations/for-guest` | Host | Start conversation with a guest (from host dashboard) |
 | GET | `/messages/conversations/{id}/messages` | Yes | Get messages |
 | POST | `/messages/conversations/{id}/messages` | Yes | Send message |
 
@@ -309,20 +319,28 @@ Interactive docs: **GET /docs**
 - **Mobile sticky Reserve bar** on listing pages with guest picker (adults / children / infants)
 
 ### Host tools
-- Host dashboard — CRUD listings, view bookings on your properties
+- Host dashboard with **Listings**, **Bookings**, and **Reviews** tabs
+- CRUD listings (with delete confirmation), view bookings, **message guests** from bookings
+- **Reply to reviews** and like reviews from the Reviews tab
 - **Hosting tab** in mobile bottom nav for host accounts
+
+### Reviews
+- Post-stay reviews linked to bookings (after checkout, from **Trips**)
+- **Like reviews** — any logged-in user; counts visible on listing pages
+- **Host replies** — shown on listing pages; live-updated via polling
+- Review notifications deep-link to the listing review (`/listing/{id}#review-{id}`)
 
 ### Social & communication
 - Wishlists — save/remove favorites
 - Guest–host **inbox** with read receipts and live polling
 - **Message notifications** — bell alerts when someone sends you a message (polls inbox every 4s)
-- Post-stay reviews linked to bookings
+- **Review notifications** — bell alerts for new reviews (hosts), likes, and host replies (guests)
 
 ### Notifications (client-side)
 - Navbar **notification bell** with unread count
 - Per-user storage in `localStorage` (`app_notifications_by_user`)
-- Types: booking, message, wishlist, verification, sign-in
-- Toast popups via `sonner` for new messages and events
+- Types: booking, message, review, wishlist, verification, sign-in
+- Toast popups via `sonner` for new messages and events; review toasts include a **View** link
 
 ### Mobile UX
 - **Bottom tab bar** — Explore, Wishlists, Trips, Inbox, Profile (+ **Hosting** for host accounts)
@@ -341,15 +359,16 @@ Interactive docs: **GET /docs**
 1. **No real authentication** — Sessions are simulated via `X-User-Id`; suitable for demo/assignment use only.
 2. **No real payments** — Checkout is mocked; no Stripe or payment gateway integration.
 3. **No real identity verification** — ID upload is a mock UI; any file completes verification instantly.
-4. **Notifications are client-side** — Stored in `localStorage` per user; not pushed from a server. Message alerts use inbox polling.
+4. **Notifications are client-side** — Stored in `localStorage` per user; not pushed from a server. Message and review alerts use polling (`/messages/conversations`, `/reviews/me/tracked`).
 5. **Photos are URL-based** — Listing images are external Unsplash URLs; there is no file upload.
 6. **Map uses OpenStreetMap tiles** — Listing location is shown with Leaflet; no custom map API key is required.
 7. **Guest vs host roles** — Users have an `is_host` flag; demo accounts are either guest-only or host-only.
 8. **Pricing formula** — `total = nights × price_per_night + ₹500 cleaning fee + 12% service fee` (hardcoded).
 9. **SQLite for persistence** — Single-file database; not intended for high-concurrency production without migration to Postgres.
 10. **Infants excluded from capacity** — Search guest count uses adults + children only (infants do not count toward `max_guests`).
-11. **Messaging** — Only guests can initiate conversations; hosts reply in existing threads.
-12. **Seed data** — 5 guest accounts and 5 host accounts (20 listings each, Bangalore & Mumbai) are pre-loaded for demonstration.
+11. **Messaging** — Guests can start conversations from listing pages; hosts can also start conversations with guests from the host dashboard bookings tab.
+12. **Reviews** — One review per completed booking; hosts can post one public reply per review; likes are toggled per user.
+13. **Seed data** — 5 guest accounts and 5 host accounts (20 listings each, Bangalore & Mumbai) are pre-loaded for demonstration.
 
 ---
 
