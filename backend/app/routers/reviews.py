@@ -8,7 +8,7 @@ from app.database import get_db
 from app.dependencies import get_current_user, get_optional_user
 from app.models import Booking, Listing, Review, ReviewLike, User
 from app.review_utils import host_review_out, review_like_count, review_out
-from app.schemas import HostReviewOut, ReviewCreate, ReviewOut, ReviewReplyCreate, ReviewWatchOut
+from app.schemas import GuestReviewOut, HostReviewOut, ReviewCreate, ReviewOut, ReviewReplyCreate, ReviewWatchOut
 
 router = APIRouter(prefix="/reviews", tags=["reviews"])
 
@@ -154,4 +154,29 @@ def tracked_reviews(
         )
         for review, guest_name, listing_id, listing_title, host_id in rows
     ]
+
+
+@router.get("/me/written", response_model=list[GuestReviewOut])
+def my_written_reviews(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Reviews the current user wrote as a guest."""
+    rows = (
+        db.query(Review, User.name, Listing.id, Listing.title)
+        .join(Listing, Review.listing_id == Listing.id)
+        .join(User, Review.guest_id == User.id)
+        .filter(Review.guest_id == current_user.id)
+        .order_by(Review.created_at.desc())
+        .all()
+    )
+    return [
+        GuestReviewOut(
+            **review_out(review, guest_name, db, current_user.id).model_dump(),
+            listing_id=listing_id,
+            listing_title=listing_title,
+        )
+        for review, guest_name, listing_id, listing_title in rows
+    ]
+
 

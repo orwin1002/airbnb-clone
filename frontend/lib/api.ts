@@ -43,6 +43,24 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return res.json();
 }
 
+function normalizeReview(raw: Review): Review {
+  return {
+    ...raw,
+    like_count: raw.like_count ?? 0,
+    liked_by_me: raw.liked_by_me ?? false,
+    host_reply: raw.host_reply ?? null,
+    host_reply_at: raw.host_reply_at ?? null,
+  };
+}
+
+function normalizeGuestReview(raw: import("./types").GuestReview): import("./types").GuestReview {
+  return {
+    ...normalizeReview(raw),
+    listing_id: raw.listing_id,
+    listing_title: raw.listing_title,
+  };
+}
+
 async function requestWithRetry<T>(
   path: string,
   options: RequestInit = {},
@@ -93,7 +111,8 @@ export const api = {
   getAvailability: (id: number) =>
     request<AvailabilityRange[]>(`/listings/${id}/availability`),
 
-  getReviews: (id: number) => request<Review[]>(`/listings/${id}/reviews`),
+  getReviews: (id: number) =>
+    request<Review[]>(`/listings/${id}/reviews`).then((rows) => rows.map(normalizeReview)),
 
   createListing: (data: Record<string, unknown>) =>
     request<ListingDetail>("/listings", { method: "POST", body: JSON.stringify(data) }),
@@ -178,4 +197,9 @@ export const api = {
     }),
 
   getTrackedReviews: () => request<import("./types").ReviewWatch[]>("/reviews/me/tracked"),
+
+  getMyWrittenReviews: () =>
+    request<import("./types").GuestReview[]>("/reviews/me/written").then((rows) =>
+      rows.map((r) => ({ ...normalizeReview(r), listing_id: r.listing_id, listing_title: r.listing_title }))
+    ),
 };

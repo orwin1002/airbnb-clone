@@ -89,6 +89,11 @@ export interface HostReview extends Review {
   listing_title: string;
 }
 
+export interface GuestReview extends Review {
+  listing_id: number;
+  listing_title: string;
+}
+
 export interface ReviewWatch {
   id: number;
   listing_id: number;

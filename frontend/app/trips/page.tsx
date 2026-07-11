@@ -6,9 +6,9 @@ import SafeImage from "@/components/SafeImage";
 import CancelBookingModal from "@/components/CancelBookingModal";
 import MessageHostButton from "@/components/MessageHostButton";
 import ReviewModal from "@/components/ReviewModal";
+import HostReply from "@/components/HostReply";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
-import { formatMessageTimestamp } from "@/lib/dates";
 import type { Booking } from "@/lib/types";
 import { useToast } from "@/lib/toast";
 
@@ -127,15 +127,7 @@ export default function TripsPage() {
                 {b.has_review && (
                   <div className="w-full space-y-2 sm:text-right">
                     {b.host_reply?.trim() ? (
-                      <div className="rounded-xl border border-primary/20 bg-primary/5 px-3 py-2.5 text-left sm:max-w-xs sm:ml-auto">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-primary">Host response</p>
-                        <p className="mt-1 text-sm leading-relaxed">{b.host_reply}</p>
-                        {b.host_reply_at && (
-                          <p className="mt-1 text-[11px] text-muted-foreground">
-                            {formatMessageTimestamp(b.host_reply_at)}
-                          </p>
-                        )}
-                      </div>
+                      <HostReply reply={b.host_reply} replyAt={b.host_reply_at} className="sm:ml-auto sm:max-w-xs" />
                     ) : (
                       <span className="text-xs text-muted-foreground">Review submitted</span>
                     )}

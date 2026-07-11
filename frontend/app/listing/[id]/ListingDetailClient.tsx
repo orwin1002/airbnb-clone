@@ -77,10 +77,13 @@ export default function ListingDetailClient({ id }: Props) {
 
   useEffect(() => {
     const poll = () => {
-      api.getReviews(id).then(setReviews).catch(() => {});
+      api
+        .getReviews(id)
+        .then((fresh) => setReviews(fresh))
+        .catch(() => {});
     };
     poll();
-    const interval = setInterval(poll, 4000);
+    const interval = setInterval(poll, 3000);
     const onFocus = () => poll();
     window.addEventListener("focus", onFocus);
     return () => {

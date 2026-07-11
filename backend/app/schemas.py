@@ -98,6 +98,11 @@ class HostReviewOut(ReviewOut):
     listing_title: str
 
 
+class GuestReviewOut(ReviewOut):
+    listing_id: int
+    listing_title: str
+
+
 class ReviewWatchOut(BaseModel):
     id: int
     listing_id: int

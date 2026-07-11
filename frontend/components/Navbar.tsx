@@ -129,48 +129,31 @@ export default function Navbar() {
             {user && <NotificationBell />}
 
             <div className="relative hidden lg:block">
-              <button
-                onClick={() => setProfileOpen(!profileOpen)}
-                className="flex items-center rounded-full border border-border p-1.5 shadow-sm transition hover:shadow-md"
-              >
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
-                  <User className="h-4 w-4" />
-                </div>
-              </button>
+              {user ? (
+                <Link
+                  href="/profile"
+                  className="flex items-center rounded-full border border-border p-1.5 shadow-sm transition hover:shadow-md"
+                  aria-label="Profile"
+                >
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                    {user.name.slice(0, 1).toUpperCase()}
+                  </div>
+                </Link>
+              ) : (
+                <button
+                  onClick={() => setProfileOpen(!profileOpen)}
+                  className="flex items-center rounded-full border border-border p-1.5 shadow-sm transition hover:shadow-md"
+                >
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
+                    <User className="h-4 w-4" />
+                  </div>
+                </button>
+              )}
 
-              {profileOpen && (
+              {profileOpen && !user && (
                 <div className="absolute right-0 mt-2 w-72 rounded-2xl border border-border bg-card p-4 shadow-elevated">
                   {loading ? (
                     <p className="text-sm text-muted-foreground">Loading...</p>
-                  ) : user ? (
-                    <div className="space-y-3">
-                      <p className="font-semibold">{user.name}</p>
-                      <p className="text-sm text-muted-foreground">{user.email}</p>
-                      <p className="text-xs text-muted-foreground">{user.is_host ? "Host & Guest" : "Guest"}</p>
-                      {user.identity_verified ? (
-                        <p className="flex items-center gap-1.5 text-xs font-medium text-green-700 dark:text-green-400">
-                          <ShieldCheck className="h-3.5 w-3.5" />
-                          Identity verified
-                        </p>
-                      ) : (
-                        <button
-                          onClick={() => {
-                            openVerification();
-                            setProfileOpen(false);
-                          }}
-                          className="flex w-full items-center justify-center gap-2 rounded-lg border border-border py-2 text-sm font-medium hover:bg-muted"
-                        >
-                          <ShieldCheck className="h-4 w-4" />
-                          Verify identity
-                        </button>
-                      )}
-                      <button
-                        onClick={() => { logout(); setProfileOpen(false); showToast("Logged out", "info"); }}
-                        className="w-full rounded-lg bg-muted py-2 text-sm font-medium hover:bg-muted/80"
-                      >
-                        Log out
-                      </button>
-                    </div>
                   ) : (
                     <div className="space-y-2">
                       <button onClick={() => openAuth("login")} className="w-full rounded-xl bg-foreground py-2.5 text-sm font-semibold text-background">

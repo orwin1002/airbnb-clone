@@ -3,10 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Building2, Heart, Home, Luggage, MessageSquare, User, ShieldCheck, X } from "lucide-react";
+import { Building2, Heart, Home, Luggage, MessageSquare, User, X } from "lucide-react";
 import { useAuth } from "@/lib/auth";
-import { useToast } from "@/lib/toast";
-import { useIdentityVerification } from "@/lib/identityVerification";
 import AuthModal from "@/components/AuthModal";
 
 function tabClass(active: boolean) {
@@ -17,9 +15,7 @@ function tabClass(active: boolean) {
 
 export default function MobileBottomNav() {
   const pathname = usePathname();
-  const { user, logout, loading } = useAuth();
-  const { showToast } = useToast();
-  const { openVerification } = useIdentityVerification();
+  const { user, loading } = useAuth();
   const [profileOpen, setProfileOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
@@ -61,14 +57,21 @@ export default function MobileBottomNav() {
               Hosting
             </Link>
           )}
-          <button type="button" className={tabClass(profileOpen)} onClick={() => setProfileOpen(true)}>
-            <User className="h-6 w-6" />
-            Profile
-          </button>
+          {user ? (
+            <Link href="/profile" className={tabClass(isActive("/profile"))}>
+              <User className={`h-6 w-6 ${isActive("/profile") ? "fill-primary/15" : ""}`} />
+              Profile
+            </Link>
+          ) : (
+            <button type="button" className={tabClass(profileOpen)} onClick={() => setProfileOpen(true)}>
+              <User className="h-6 w-6" />
+              Profile
+            </button>
+          )}
         </div>
       </nav>
 
-      {profileOpen && (
+      {profileOpen && !user && (
         <div className="fixed inset-0 z-[85] lg:hidden">
           <div className="absolute inset-0 bg-black/50" onClick={() => setProfileOpen(false)} aria-hidden />
           <div className="absolute inset-x-0 bottom-0 rounded-t-3xl border border-border bg-card p-5 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl">
@@ -80,43 +83,6 @@ export default function MobileBottomNav() {
             </div>
             {loading ? (
               <p className="text-sm text-muted-foreground">Loading...</p>
-            ) : user ? (
-              <div className="space-y-3">
-                <p className="font-semibold">{user.name}</p>
-                <p className="text-sm text-muted-foreground">{user.email}</p>
-                {user.is_host && (
-                  <Link
-                    href="/host"
-                    onClick={() => setProfileOpen(false)}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-sm font-semibold text-white"
-                  >
-                    <Building2 className="h-4 w-4" />
-                    Host dashboard
-                  </Link>
-                )}
-                {user.identity_verified ? (
-                  <p className="flex items-center gap-1.5 text-xs font-medium text-green-700 dark:text-green-400">
-                    <ShieldCheck className="h-3.5 w-3.5" />
-                    Identity verified
-                  </p>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => { openVerification(); setProfileOpen(false); }}
-                    className="flex w-full items-center justify-center gap-2 rounded-lg border border-border py-2.5 text-sm font-medium"
-                  >
-                    <ShieldCheck className="h-4 w-4" />
-                    Verify identity
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => { logout(); setProfileOpen(false); showToast("Logged out", "info"); }}
-                  className="w-full rounded-xl bg-muted py-2.5 text-sm font-medium"
-                >
-                  Log out
-                </button>
-              </div>
             ) : (
               <div className="space-y-2">
                 <button
