@@ -6,8 +6,8 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
 from app.dependencies import get_current_user
-from app.models import Conversation, Listing, ListingPhoto, Message, User
-from app.schemas import ConversationCreate, ConversationOut, MessageCreate, MessageOut
+from app.models import Booking, Conversation, Favorite, Listing, ListingPhoto, Message, Review, User
+from app.schemas import ConversationCreate, ConversationOut, HostConversationCreate, MessageCreate, MessageOut
 
 router = APIRouter(prefix="/messages", tags=["messages"])
 
@@ -96,6 +96,61 @@ def start_conversation(
         return _conversation_out(existing, current_user, db)
 
     conv = Conversation(guest_id=current_user.id, host_id=listing.host_id, listing_id=listing.id)
+    db.add(conv)
+    db.commit()
+    conv = (
+        db.query(Conversation)
+        .options(
+            joinedload(Conversation.listing),
+            joinedload(Conversation.guest),
+            joinedload(Conversation.host),
+            joinedload(Conversation.messages),
+        )
+        .filter(Conversation.id == conv.id)
+        .first()
+    )
+    return _conversation_out(conv, current_user, db)
+
+
+@router.post("/conversations/for-guest", response_model=ConversationOut, status_code=201)
+def host_conversation_with_guest(
+    payload: HostConversationCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    listing = db.query(Listing).filter(Listing.id == payload.listing_id).first()
+    if not listing:
+        raise HTTPException(status_code=404, detail="Listing not found")
+    if listing.host_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not your listing")
+
+    guest = db.query(User).filter(User.id == payload.guest_id).first()
+    if not guest:
+        raise HTTPException(status_code=404, detail="Guest not found")
+
+    existing = (
+        db.query(Conversation)
+        .options(
+            joinedload(Conversation.listing),
+            joinedload(Conversation.guest),
+            joinedload(Conversation.host),
+            joinedload(Conversation.messages),
+        )
+        .filter(
+            Conversation.guest_id == payload.guest_id,
+            Conversation.host_id == current_user.id,
+            Conversation.listing_id == listing.id,
+        )
+        .first()
+    )
+    if existing:
+        return _conversation_out(existing, current_user, db)
+
+    conv = Conversation(
+        guest_id=payload.guest_id,
+        host_id=current_user.id,
+        listing_id=listing.id,
+    )
     db.add(conv)
     db.commit()
     conv = (

@@ -1,5 +1,28 @@
-import { addDays, isBefore, parseISO, startOfDay } from "date-fns";
+import { addDays, formatDistanceToNow, isBefore, parseISO, startOfDay } from "date-fns";
 import type { AvailabilityRange } from "./types";
+
+/** API datetimes are UTC but often omit the trailing Z. */
+export function parseApiDate(iso: string): Date {
+  const trimmed = iso.trim();
+  if (!trimmed) return new Date(NaN);
+  if (trimmed.endsWith("Z") || /[+-]\d{2}:\d{2}$/.test(trimmed)) {
+    return parseISO(trimmed);
+  }
+  return parseISO(`${trimmed}Z`);
+}
+
+export function formatMessageTimestamp(iso: string): string {
+  return parseApiDate(iso).toLocaleString("en-IN", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+export function formatRelativeTimestamp(iso: string): string {
+  return formatDistanceToNow(parseApiDate(iso), { addSuffix: true });
+}
 
 /** True if this calendar night (check-in day) is inside a confirmed booking. */
 export function isBlockedStayNight(day: Date, ranges: AvailabilityRange[]) {

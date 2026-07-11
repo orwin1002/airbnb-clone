@@ -7,6 +7,7 @@ import SafeImage from "@/components/SafeImage";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
 import type { Conversation } from "@/lib/types";
+import { formatRelativeTimestamp } from "@/lib/dates";
 import { useToast } from "@/lib/toast";
 
 export default function InboxPage() {
@@ -69,11 +70,18 @@ export default function InboxPage() {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-2">
                   <p className="truncate font-semibold">{c.other_user_name}</p>
-                  {c.unread_count > 0 && (
-                    <span className="shrink-0 rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-white">
-                      {c.unread_count}
-                    </span>
-                  )}
+                  <div className="flex shrink-0 items-center gap-2">
+                    {c.last_message_at && (
+                      <span className="text-[11px] text-muted-foreground">
+                        {formatRelativeTimestamp(c.last_message_at)}
+                      </span>
+                    )}
+                    {c.unread_count > 0 && (
+                      <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-white">
+                        {c.unread_count}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <p className="truncate text-sm text-muted-foreground">{c.listing_title}</p>
                 {c.last_message && (

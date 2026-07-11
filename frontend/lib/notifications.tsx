@@ -14,6 +14,10 @@ export interface AppNotification {
   type: NotificationType;
   read: boolean;
   createdAt: string;
+  /** When the underlying event happened (e.g. message sent). Used for display time. */
+  eventAt?: string;
+  /** Prevents duplicate entries for the same underlying event. */
+  dedupeKey?: string;
 }
 
 interface NotificationContextType {
@@ -23,9 +27,10 @@ interface NotificationContextType {
     title: string,
     body: string,
     type?: NotificationType,
-    options?: { toast?: boolean; userId?: number }
+    options?: { toast?: boolean; userId?: number; eventAt?: string; dedupeKey?: string; read?: boolean }
   ) => void;
   markRead: (id: string) => void;
+  markReadByDedupePrefix: (prefix: string) => void;
   markAllRead: () => void;
   clearAll: () => void;
 }
@@ -94,23 +99,31 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       title: string,
       body: string,
       type: NotificationType = "system",
-      options?: { toast?: boolean; userId?: number }
+      options?: { toast?: boolean; userId?: number; eventAt?: string; dedupeKey?: string; read?: boolean }
     ) => {
+      const uid = options?.userId ?? getActiveUserId();
+      if (uid == null) return;
+
+      const existing = readStore()[String(uid)] ?? [];
+      if (options?.dedupeKey && existing.some((n) => n.dedupeKey === options.dedupeKey)) {
+        return;
+      }
+
       if (options?.toast !== false) {
         toast(title, { description: body });
       }
 
-      const uid = options?.userId ?? getActiveUserId();
-      if (uid == null) return;
-
+      const now = new Date().toISOString();
       const item: AppNotification = {
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         userId: uid,
         title,
         body,
         type,
-        read: false,
-        createdAt: new Date().toISOString(),
+        read: options?.read ?? false,
+        createdAt: now,
+        eventAt: options?.eventAt ?? now,
+        dedupeKey: options?.dedupeKey,
       };
       updateForUser(uid, (prev) => [item, ...prev.filter((n) => n.userId === uid)].slice(0, 50));
     },
@@ -122,6 +135,18 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       if (userId == null) return;
       updateForUser(userId, (prev) =>
         prev.map((n) => (n.id === id && n.userId === userId ? { ...n, read: true } : n))
+      );
+    },
+    [userId, updateForUser]
+  );
+
+  const markReadByDedupePrefix = useCallback(
+    (prefix: string) => {
+      if (userId == null) return;
+      updateForUser(userId, (prev) =>
+        prev.map((n) =>
+          n.userId === userId && n.dedupeKey?.startsWith(prefix) ? { ...n, read: true } : n
+        )
       );
     },
     [userId, updateForUser]
@@ -143,7 +168,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   return (
     <NotificationContext.Provider
-      value={{ notifications, unreadCount, addNotification, markRead, markAllRead, clearAll }}
+      value={{ notifications, unreadCount, addNotification, markRead, markReadByDedupePrefix, markAllRead, clearAll }}
     >
       {children}
     </NotificationContext.Provider>

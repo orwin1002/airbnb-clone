@@ -33,7 +33,7 @@ def host_bookings(
     bookings = (
         db.query(Booking)
         .join(Listing, Listing.id == Booking.listing_id)
-        .options(joinedload(Booking.listing))
+        .options(joinedload(Booking.listing), joinedload(Booking.guest))
         .filter(Listing.host_id == current_user.id)
         .order_by(Booking.created_at.desc())
         .all()

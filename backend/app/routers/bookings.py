@@ -78,6 +78,8 @@ def _booking_out(
         listing_photo=photo_url,
         location_city=listing.location_city,
         host_id=listing.host_id,
+        guest_id=booking.guest_id,
+        guest_name=booking.guest.name if booking.guest else "Guest",
         check_in=booking.check_in,
         check_out=booking.check_out,
         guests_count=booking.guests_count,
@@ -137,7 +139,7 @@ def my_bookings(
 ):
     bookings = (
         db.query(Booking)
-        .options(joinedload(Booking.listing))
+        .options(joinedload(Booking.listing), joinedload(Booking.guest))
         .filter(Booking.guest_id == current_user.id)
         .order_by(Booking.created_at.desc())
         .all()
@@ -187,7 +189,7 @@ def cancel_booking(
 ):
     booking = (
         db.query(Booking)
-        .options(joinedload(Booking.listing))
+        .options(joinedload(Booking.listing), joinedload(Booking.guest))
         .filter(Booking.id == booking_id)
         .first()
     )

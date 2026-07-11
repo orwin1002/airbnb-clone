@@ -135,6 +135,12 @@ export const api = {
       body: JSON.stringify({ listing_id: listingId }),
     }),
 
+  startHostConversation: (listingId: number, guestId: number) =>
+    request<import("./types").Conversation>("/messages/conversations/for-guest", {
+      method: "POST",
+      body: JSON.stringify({ listing_id: listingId, guest_id: guestId }),
+    }),
+
   getMessages: (conversationId: number) =>
     request<import("./types").Message[]>(`/messages/conversations/${conversationId}/messages`),
 

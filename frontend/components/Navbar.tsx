@@ -20,6 +20,7 @@ import { useTheme } from "next-themes";
 import { useAuth, DEMO_GUESTS, DEMO_HOSTS } from "@/lib/auth";
 import { useToast } from "@/lib/toast";
 import { useIdentityVerification } from "@/lib/identityVerification";
+import { syncInboxMessageNotifications } from "@/lib/inboxNotifications";
 import { useNotifications } from "@/lib/notifications";
 import AuthModal from "@/components/AuthModal";
 import NotificationBell from "@/components/NotificationBell";
@@ -41,7 +42,7 @@ export default function Navbar() {
   const { user, demoLogin, logout, loading } = useAuth();
   const { showToast } = useToast();
   const { openVerification } = useIdentityVerification();
-  const { addNotification } = useNotifications();
+  const { addNotification, markReadByDedupePrefix } = useNotifications();
   const pathname = usePathname();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -53,8 +54,12 @@ export default function Navbar() {
     try {
       const u = await demoLogin(email);
       showToast("Welcome back!", "success");
+      await syncInboxMessageNotifications(u.id, addNotification, markReadByDedupePrefix, {
+        toastNewMessages: false,
+      });
       addNotification("Signed in", `You're logged in as ${email}`, "system", {
         toast: false,
+        read: true,
         userId: u.id,
       });
       if (/^\/inbox\/\d+/.test(pathname)) {
@@ -73,6 +78,19 @@ export default function Navbar() {
     setProfileOpen(false);
     setMenuOpen(false);
   };
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [menuOpen]);
 
   const navLink = (href: string, label: string, icon: React.ReactNode) => (
     <Link
@@ -167,31 +185,33 @@ export default function Navbar() {
               )}
             </div>
 
-            <button className="rounded-full p-2 hover:bg-muted" onClick={() => setMenuOpen(!menuOpen)} aria-label="Menu">
+            <button
+              className="rounded-full p-2 hover:bg-muted"
+              onClick={() => setMenuOpen((v) => !v)}
+              aria-label="Menu"
+              aria-expanded={menuOpen}
+            >
               {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
           </div>
         </div>
+      </header>
 
-        {menuOpen && (
-          <div className="border-t border-border px-4 py-3 lg:max-w-md lg:ml-auto">
-            {!user && (
-              <div className="mb-4 flex gap-2 lg:hidden">
-                <button onClick={() => openAuth("login")} className="flex-1 rounded-xl bg-foreground py-2.5 text-sm font-semibold text-background">
-                  Log in
-                </button>
-                <button onClick={() => openAuth("signup")} className="flex-1 rounded-xl border border-border py-2.5 text-sm font-medium">
-                  Sign up
-                </button>
-              </div>
-            )}
-
+      {menuOpen && (
+        <div className="fixed inset-0 z-[70]">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-[1px]"
+            onClick={() => setMenuOpen(false)}
+            aria-hidden
+          />
+          <div className="absolute left-0 right-0 top-[57px] max-h-[min(75vh,560px)] overflow-y-auto border-b border-border bg-card px-4 py-4 shadow-elevated sm:left-auto sm:right-4 sm:top-[65px] sm:w-full sm:max-w-sm sm:rounded-2xl sm:border md:right-10">
             <div>
               <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Guest accounts</p>
               <div className="space-y-1">
                 {DEMO_GUESTS.map((u) => (
                   <button
                     key={u.email}
+                    type="button"
                     onClick={() => handleDemoLogin(u.email)}
                     className="w-full rounded-lg border border-border px-3 py-2 text-left text-sm hover:bg-muted"
                   >
@@ -204,6 +224,7 @@ export default function Navbar() {
                 {DEMO_HOSTS.map((u) => (
                   <button
                     key={u.email}
+                    type="button"
                     onClick={() => handleDemoLogin(u.email)}
                     className="w-full rounded-lg border border-border px-3 py-2 text-left text-sm hover:bg-muted"
                   >
@@ -227,6 +248,7 @@ export default function Navbar() {
                 )}
                 {!user.identity_verified && (
                   <button
+                    type="button"
                     onClick={() => {
                       openVerification();
                       setMenuOpen(false);
@@ -238,6 +260,7 @@ export default function Navbar() {
                   </button>
                 )}
                 <button
+                  type="button"
                   onClick={() => { logout(); setMenuOpen(false); showToast("Logged out", "info"); }}
                   className="w-full rounded-lg bg-muted py-2 text-sm font-medium"
                 >
@@ -246,8 +269,8 @@ export default function Navbar() {
               </div>
             )}
           </div>
-        )}
-      </header>
+        </div>
+      )}
 
       <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} initialMode={authMode} />
     </>

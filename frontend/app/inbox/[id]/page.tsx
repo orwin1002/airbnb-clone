@@ -7,6 +7,9 @@ import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
 import type { Conversation, Message } from "@/lib/types";
+import { formatMessageTimestamp } from "@/lib/dates";
+import { messageDedupePrefix } from "@/lib/inboxNotifications";
+import { useNotifications } from "@/lib/notifications";
 import { useToast } from "@/lib/toast";
 
 export default function ConversationPage() {
@@ -16,6 +19,7 @@ export default function ConversationPage() {
   const { user } = useAuth();
   const prevUserIdRef = useRef<number | null>(null);
   const { showToast } = useToast();
+  const { markReadByDedupePrefix } = useNotifications();
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [text, setText] = useState("");
@@ -34,6 +38,7 @@ export default function ConversationPage() {
       if (user?.id !== uid) return;
       setConversation(convs.find((c) => c.id === id) ?? null);
       setMessages(msgs);
+      markReadByDedupePrefix(messageDedupePrefix(uid, id));
     } catch {
       showToast("Failed to load conversation", "error");
     } finally {
@@ -132,12 +137,7 @@ export default function ConversationPage() {
                   )}
                   <p className="leading-relaxed">{m.body}</p>
                   <p className={`mt-1 text-[10px] ${isMine ? "text-white/70" : "text-muted-foreground"}`}>
-                    {new Date(m.created_at).toLocaleString("en-IN", {
-                      month: "short",
-                      day: "numeric",
-                      hour: "numeric",
-                      minute: "2-digit",
-                    })}
+                    {formatMessageTimestamp(m.created_at)}
                   </p>
                 </div>
               </div>

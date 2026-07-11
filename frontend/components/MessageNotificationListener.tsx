@@ -3,26 +3,24 @@
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth";
-import { api } from "@/lib/api";
 import { useNotifications } from "@/lib/notifications";
-import type { Conversation } from "@/lib/types";
-
-function notifyKey(userId: number, convId: number) {
-  return `msg_notify_${userId}_${convId}`;
-}
-
-function messageFingerprint(c: Conversation): string {
-  return `${c.last_message_at}|${c.last_message ?? ""}`;
-}
+import { syncInboxMessageNotifications } from "@/lib/inboxNotifications";
 
 /** Poll inbox and notify the logged-in user when someone else sends them a message. */
 export default function MessageNotificationListener() {
   const { user } = useAuth();
-  const { addNotification } = useNotifications();
+  const { addNotification, markReadByDedupePrefix } = useNotifications();
   const pathname = usePathname();
   const userId = user?.id ?? null;
   const addNotificationRef = useRef(addNotification);
+  const markReadByPrefixRef = useRef(markReadByDedupePrefix);
+  const sessionReadyRef = useRef(false);
   addNotificationRef.current = addNotification;
+  markReadByPrefixRef.current = markReadByDedupePrefix;
+
+  useEffect(() => {
+    sessionReadyRef.current = false;
+  }, [userId]);
 
   useEffect(() => {
     if (!userId) return;
@@ -31,38 +29,20 @@ export default function MessageNotificationListener() {
 
     const poll = async () => {
       try {
-        const convs = await api.getConversations();
         if (cancelled) return;
 
+        const isLoginSync = !sessionReadyRef.current;
         const openConvMatch = pathname.match(/^\/inbox\/(\d+)/);
         const openConvId = openConvMatch ? Number(openConvMatch[1]) : null;
 
-        for (const c of convs) {
-          if (!c.last_message) continue;
+        await syncInboxMessageNotifications(
+          userId,
+          addNotificationRef.current,
+          markReadByPrefixRef.current,
+          { toastNewMessages: !isLoginSync, openConvId }
+        );
 
-          const fingerprint = messageFingerprint(c);
-
-          if (openConvId === c.id) {
-            localStorage.setItem(notifyKey(userId, c.id), fingerprint);
-            continue;
-          }
-
-          if (c.unread_count <= 0) {
-            localStorage.setItem(notifyKey(userId, c.id), fingerprint);
-            continue;
-          }
-
-          const prev = localStorage.getItem(notifyKey(userId, c.id));
-          if (prev === fingerprint) continue;
-
-          localStorage.setItem(notifyKey(userId, c.id), fingerprint);
-          addNotificationRef.current(
-            `New message from ${c.other_user_name}`,
-            c.last_message.slice(0, 120),
-            "message",
-            { toast: true, userId }
-          );
-        }
+        sessionReadyRef.current = true;
       } catch {
         /* ignore poll errors */
       }

@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
 from app.dependencies import get_current_user
-from app.models import Amenity, Booking, Listing, ListingAmenity, ListingPhoto, Review, User
+from app.models import Amenity, Booking, Conversation, Favorite, Listing, ListingAmenity, ListingPhoto, Message, Review, User
 from app.schemas import (
     AvailabilityRange,
     ListingCardOut,
@@ -269,6 +269,17 @@ def delete_listing(listing_id: int, current_user: User = Depends(get_current_use
         raise HTTPException(status_code=404, detail="Listing not found")
     if listing.host_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not your listing")
+
+    conv_ids = [
+        c.id for c in db.query(Conversation).filter(Conversation.listing_id == listing_id).all()
+    ]
+    if conv_ids:
+        db.query(Message).filter(Message.conversation_id.in_(conv_ids)).delete(synchronize_session=False)
+        db.query(Conversation).filter(Conversation.listing_id == listing_id).delete(synchronize_session=False)
+
+    db.query(Favorite).filter(Favorite.listing_id == listing_id).delete(synchronize_session=False)
+    db.query(Review).filter(Review.listing_id == listing_id).delete(synchronize_session=False)
+    db.query(Booking).filter(Booking.listing_id == listing_id).delete(synchronize_session=False)
     db.delete(listing)
     db.commit()
 

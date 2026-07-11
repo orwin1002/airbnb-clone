@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Bell } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { formatRelativeTimestamp } from "@/lib/dates";
 import { useNotifications } from "@/lib/notifications";
 
 export default function NotificationBell() {
@@ -70,7 +70,7 @@ export default function NotificationBell() {
                   </div>
                   <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">{n.body}</p>
                   <p className="mt-1 text-[11px] text-muted-foreground">
-                    {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
+                    {formatRelativeTimestamp(n.eventAt ?? n.createdAt)}
                   </p>
                 </button>
               ))

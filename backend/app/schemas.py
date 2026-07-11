@@ -168,6 +168,8 @@ class BookingOut(BaseModel):
     listing_photo: Optional[str] = None
     location_city: str
     host_id: int
+    guest_id: int
+    guest_name: str
     check_in: date
     check_out: date
     guests_count: int
@@ -196,6 +198,11 @@ class FavoriteOut(BaseModel):
 # --- Messages ---
 class ConversationCreate(BaseModel):
     listing_id: int
+
+
+class HostConversationCreate(BaseModel):
+    listing_id: int
+    guest_id: int
 
 
 class ConversationOut(BaseModel):

@@ -92,6 +92,8 @@ export interface Booking {
   listing_photo?: string | null;
   location_city: string;
   host_id: number;
+  guest_id: number;
+  guest_name: string;
   check_in: string;
   check_out: string;
   guests_count: number;
